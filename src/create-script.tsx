@@ -27,40 +27,41 @@ import { join } from "path";
 
 // ─── Step Configuration Form ───
 
-function AddStepForm({ onAdd }: { onAdd: (step: ScriptStep) => void }) {
+function StepForm({ onSubmit, existing }: { onSubmit: (step: ScriptStep) => void; existing?: ScriptStep }) {
   const { pop } = useNavigation();
-  const [stepType, setStepType] = useState<StepType>("swap-delimiter");
+  const isEdit = !!existing;
+  const [stepType, setStepType] = useState<StepType>(existing?.type ?? "swap-delimiter");
 
   // Swap delimiter
-  const [fromDel, setFromDel] = useState(".");
-  const [toDel, setToDel] = useState(" ");
+  const [fromDel, setFromDel] = useState(existing?.fromDelimiter ?? ".");
+  const [toDel, setToDel] = useState(existing?.toDelimiter ?? " ");
   // Find & Replace
-  const [find, setFind] = useState("");
-  const [replace, setReplace] = useState("");
-  const [useRegex, setUseRegex] = useState(false);
+  const [find, setFind] = useState(existing?.find ?? "");
+  const [replace, setReplace] = useState(existing?.replace ?? "");
+  const [useRegex, setUseRegex] = useState(existing?.useRegex ?? false);
   // Change extension
-  const [fromExt, setFromExt] = useState("");
-  const [toExt, setToExt] = useState("");
+  const [fromExt, setFromExt] = useState(existing?.fromExtension ?? "");
+  const [toExt, setToExt] = useState(existing?.toExtension ?? "");
   // TV Show
-  const [showName, setShowName] = useState("");
-  const [season, setSeason] = useState("1");
-  const [startEp, setStartEp] = useState("1");
-  const [wordDel, setWordDel] = useState(" ");
-  const [suffix, setSuffix] = useState("");
+  const [showName, setShowName] = useState(existing?.showName ?? "");
+  const [season, setSeason] = useState(String(existing?.season ?? 1));
+  const [startEp, setStartEp] = useState(String(existing?.startEpisode ?? 1));
+  const [wordDel, setWordDel] = useState(existing?.wordDelimiter ?? " ");
+  const [suffix, setSuffix] = useState(existing?.suffix ?? "");
   // Anime
-  const [animeName, setAnimeName] = useState("");
-  const [startAnimeEp, setStartAnimeEp] = useState("1");
-  const [group, setGroup] = useState("");
-  const [quality, setQuality] = useState("");
+  const [animeName, setAnimeName] = useState(existing?.animeName ?? "");
+  const [startAnimeEp, setStartAnimeEp] = useState(String(existing?.startAnimeEpisode ?? 1));
+  const [group, setGroup] = useState(existing?.group ?? "");
+  const [quality, setQuality] = useState(existing?.quality ?? "");
   // Movie
-  const [movieName, setMovieName] = useState("");
-  const [year, setYear] = useState("");
-  const [movieQuality, setMovieQuality] = useState("");
+  const [movieName, setMovieName] = useState(existing?.movieName ?? "");
+  const [year, setYear] = useState(existing?.year ?? "");
+  const [movieQuality, setMovieQuality] = useState(existing?.movieQuality ?? "");
   // Sequential / Enumerate
-  const [prefix, setPrefix] = useState("");
-  const [startNum, setStartNum] = useState("1");
-  const [zeroPad, setZeroPad] = useState("3");
-  const [separator, setSeparator] = useState("-");
+  const [prefix, setPrefix] = useState(existing?.prefix ?? "");
+  const [startNum, setStartNum] = useState(String(existing?.startNumber ?? 1));
+  const [zeroPad, setZeroPad] = useState(String(existing?.zeroPad ?? 3));
+  const [separator, setSeparator] = useState(existing?.separator ?? "-");
 
   function buildStep(): ScriptStep {
     const step: ScriptStep = { type: stepType };
@@ -110,14 +111,14 @@ function AddStepForm({ onAdd }: { onAdd: (step: ScriptStep) => void }) {
 
   return (
     <Form
-      navigationTitle="Add Step"
+      navigationTitle={isEdit ? "Edit Step" : "Add Step"}
       actions={
         <ActionPanel>
           <Action.SubmitForm
-            title="Add Step"
-            icon={Icon.Plus}
+            title={isEdit ? "Save Changes" : "Add Step"}
+            icon={isEdit ? Icon.Checkmark : Icon.Plus}
             onSubmit={() => {
-              onAdd(buildStep());
+              onSubmit(buildStep());
               pop();
             }}
           />
@@ -237,6 +238,12 @@ export default function CreateScript() {
     setSteps([...steps, step]);
   }
 
+  function editStep(index: number, updated: ScriptStep) {
+    const newSteps = [...steps];
+    newSteps[index] = updated;
+    setSteps(newSteps);
+  }
+
   function removeStep(index: number) {
     setSteps(steps.filter((_, i) => i !== index));
   }
@@ -336,7 +343,7 @@ export default function CreateScript() {
       searchBarPlaceholder="Script pipeline..."
       actions={
         <ActionPanel>
-          <Action title="Add Step" icon={Icon.Plus} onAction={() => push(<AddStepForm onAdd={addStep} />)} />
+          <Action title="Add Step" icon={Icon.Plus} onAction={() => push(<StepForm onSubmit={addStep} />)} />
           <Action title="Preview on Finder Folder" icon={Icon.Eye} onAction={handlePreview} shortcut={{ modifiers: ["cmd"], key: "p" }} />
           <Action title="Save Script" icon={Icon.SaveDocument} onAction={handleSave} shortcut={{ modifiers: ["cmd"], key: "s" }} />
         </ActionPanel>
@@ -384,7 +391,7 @@ export default function CreateScript() {
                   )
                 }
               />
-              <Action title="Add Step" icon={Icon.Plus} onAction={() => push(<AddStepForm onAdd={addStep} />)} />
+              <Action title="Add Step" icon={Icon.Plus} onAction={() => push(<StepForm onSubmit={addStep} />)} />
               <Action title="Preview on Finder Folder" icon={Icon.Eye} onAction={handlePreview} shortcut={{ modifiers: ["cmd"], key: "p" }} />
               <Action title="Save Script" icon={Icon.SaveDocument} onAction={handleSave} shortcut={{ modifiers: ["cmd"], key: "s" }} />
             </ActionPanel>
@@ -400,23 +407,24 @@ export default function CreateScript() {
             subtitle="Press Enter to add a step"
             actions={
               <ActionPanel>
-                <Action title="Add Step" icon={Icon.Plus} onAction={() => push(<AddStepForm onAdd={addStep} />)} />
+                <Action title="Add Step" icon={Icon.Plus} onAction={() => push(<StepForm onSubmit={addStep} />)} />
               </ActionPanel>
             }
           />
         )}
         {steps.map((step, i) => (
           <List.Item
-            key={i}
+            key={`${i}-${step.type}`}
             icon={{ source: Icon.ChevronRight, tintColor: Color.Blue }}
             title={`Step ${i + 1}: ${stepTypeLabel(step.type)}`}
             subtitle={stepLabel(step)}
             actions={
               <ActionPanel>
-                <Action title="Add Step" icon={Icon.Plus} onAction={() => push(<AddStepForm onAdd={addStep} />)} />
-                <Action title="Remove Step" icon={Icon.Trash} style={Action.Style.Destructive} onAction={() => removeStep(i)} shortcut={{ modifiers: ["cmd"], key: "backspace" }} />
+                <Action title="Edit Step" icon={Icon.Pencil} onAction={() => push(<StepForm existing={step} onSubmit={(updated) => editStep(i, updated)} />)} />
+                <Action title="Add Step" icon={Icon.Plus} onAction={() => push(<StepForm onSubmit={addStep} />)} shortcut={{ modifiers: ["cmd"], key: "n" }} />
                 <Action title="Move Up" icon={Icon.ArrowUp} onAction={() => moveStepUp(i)} shortcut={{ modifiers: ["cmd"], key: "arrowUp" }} />
                 <Action title="Move Down" icon={Icon.ArrowDown} onAction={() => moveStepDown(i)} shortcut={{ modifiers: ["cmd"], key: "arrowDown" }} />
+                <Action title="Remove Step" icon={Icon.Trash} style={Action.Style.Destructive} onAction={() => removeStep(i)} shortcut={{ modifiers: ["cmd"], key: "backspace" }} />
                 <Action title="Preview on Finder Folder" icon={Icon.Eye} onAction={handlePreview} shortcut={{ modifiers: ["cmd"], key: "p" }} />
                 <Action title="Save Script" icon={Icon.SaveDocument} onAction={handleSave} shortcut={{ modifiers: ["cmd"], key: "s" }} />
               </ActionPanel>
