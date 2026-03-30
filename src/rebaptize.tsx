@@ -448,6 +448,7 @@ export default function Rebaptize({ initialMode }: { initialMode?: RenameMode } 
         canChooseFiles={false}
         defaultValue={folderPath ? [folderPath] : undefined}
         onChange={onFolderChange}
+        info={folderPath ? `Auto-detected from Finder: ${folderPath}` : "Open a Finder window or select a folder manually"}
       />
 
       <Form.Dropdown id="mode" title="Preset" value={mode} onChange={(v) => setMode(v as RenameMode)}>

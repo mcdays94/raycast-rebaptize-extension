@@ -340,6 +340,7 @@ export default function SmartOrganize() {
         canChooseFiles={false}
         defaultValue={folderPath ? [folderPath] : undefined}
         onChange={onFolderChange}
+        info={folderPath ? `Auto-detected from Finder: ${folderPath}` : "Open a Finder window or select a folder manually"}
       />
 
       <Form.TextField

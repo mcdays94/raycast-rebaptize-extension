@@ -186,6 +186,7 @@ export default function SortByLocation() {
         canChooseDirectories
         canChooseFiles={false}
         defaultValue={detectedFolder ? [detectedFolder] : undefined}
+        info={detectedFolder ? `Auto-detected from Finder: ${detectedFolder}` : "Open a Finder window or select a folder manually"}
       />
 
       <Form.Dropdown
