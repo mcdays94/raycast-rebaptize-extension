@@ -291,6 +291,8 @@ export default function CreateScript() {
       return;
     }
 
+    await showToast({ style: Toast.Style.Animated, title: "Loading files from Finder..." });
+
     const folderPath = await getFinderFolder();
     if (!folderPath) {
       await showToast({ style: Toast.Style.Failure, title: "Open a Finder window to preview" });
@@ -305,6 +307,11 @@ export default function CreateScript() {
       if (s.isFile()) files.push(entry);
     }
     files.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
+
+    if (files.length === 0) {
+      await showToast({ style: Toast.Style.Failure, title: "No files in folder" });
+      return;
+    }
 
     const script: RenameScript = {
       id: "preview",
@@ -344,7 +351,7 @@ export default function CreateScript() {
       actions={
         <ActionPanel>
           <Action title="Add Step" icon={Icon.Plus} onAction={() => push(<StepForm onSubmit={addStep} />)} />
-          <Action title="Preview on Finder Folder" icon={Icon.Eye} onAction={handlePreview} shortcut={{ modifiers: ["cmd"], key: "p" }} />
+          <Action title="Preview on Finder Folder" icon={Icon.Eye} onAction={handlePreview} shortcut={{ modifiers: ["cmd", "shift"], key: "p" }} />
           <Action title="Save Script" icon={Icon.SaveDocument} onAction={handleSave} shortcut={{ modifiers: ["cmd"], key: "s" }} />
         </ActionPanel>
       }
@@ -391,8 +398,8 @@ export default function CreateScript() {
                   )
                 }
               />
-              <Action title="Add Step" icon={Icon.Plus} onAction={() => push(<StepForm onSubmit={addStep} />)} />
-              <Action title="Preview on Finder Folder" icon={Icon.Eye} onAction={handlePreview} shortcut={{ modifiers: ["cmd"], key: "p" }} />
+              <Action title="Add Step" icon={Icon.Plus} onAction={() => push(<StepForm onSubmit={addStep} />)} shortcut={{ modifiers: ["cmd"], key: "n" }} />
+              <Action title="Preview on Finder Folder" icon={Icon.Eye} onAction={handlePreview} shortcut={{ modifiers: ["cmd", "shift"], key: "p" }} />
               <Action title="Save Script" icon={Icon.SaveDocument} onAction={handleSave} shortcut={{ modifiers: ["cmd"], key: "s" }} />
             </ActionPanel>
           }
@@ -422,10 +429,10 @@ export default function CreateScript() {
               <ActionPanel>
                 <Action title="Edit Step" icon={Icon.Pencil} onAction={() => push(<StepForm existing={step} onSubmit={(updated) => editStep(i, updated)} />)} />
                 <Action title="Add Step" icon={Icon.Plus} onAction={() => push(<StepForm onSubmit={addStep} />)} shortcut={{ modifiers: ["cmd"], key: "n" }} />
-                <Action title="Move Up" icon={Icon.ArrowUp} onAction={() => moveStepUp(i)} shortcut={{ modifiers: ["cmd"], key: "arrowUp" }} />
-                <Action title="Move Down" icon={Icon.ArrowDown} onAction={() => moveStepDown(i)} shortcut={{ modifiers: ["cmd"], key: "arrowDown" }} />
+                <Action title="Move Up" icon={Icon.ArrowUp} onAction={() => moveStepUp(i)} shortcut={{ modifiers: ["cmd", "shift"], key: "arrowUp" }} />
+                <Action title="Move Down" icon={Icon.ArrowDown} onAction={() => moveStepDown(i)} shortcut={{ modifiers: ["cmd", "shift"], key: "arrowDown" }} />
                 <Action title="Remove Step" icon={Icon.Trash} style={Action.Style.Destructive} onAction={() => removeStep(i)} shortcut={{ modifiers: ["cmd"], key: "backspace" }} />
-                <Action title="Preview on Finder Folder" icon={Icon.Eye} onAction={handlePreview} shortcut={{ modifiers: ["cmd"], key: "p" }} />
+                <Action title="Preview on Finder Folder" icon={Icon.Eye} onAction={handlePreview} shortcut={{ modifiers: ["cmd", "shift"], key: "p" }} />
                 <Action title="Save Script" icon={Icon.SaveDocument} onAction={handleSave} shortcut={{ modifiers: ["cmd"], key: "s" }} />
               </ActionPanel>
             }
