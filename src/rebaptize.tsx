@@ -88,13 +88,14 @@ function PreviewList({ folderPath, previews }: { folderPath: string; previews: R
   );
 }
 
-export default function Rebaptize() {
+export default function Rebaptize({ initialMode }: { initialMode?: RenameMode } = {}) {
   const { push } = useNavigation();
 
+  const lockedMode = initialMode !== undefined;
   const [folderPath, setFolderPath] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<FileAnalysis | null>(null);
   const [analyzed, setAnalyzed] = useState(false);
-  const [mode, setMode] = useState<RenameMode>("sequential");
+  const [mode, setMode] = useState<RenameMode>(initialMode ?? "sequential");
   const [suggestionNote, setSuggestionNote] = useState("");
 
   // Word delimiter (shared by TV show & Movie)
@@ -178,8 +179,8 @@ export default function Rebaptize() {
   function applySmartDefaults(a: FileAnalysis) {
     const notes: string[] = [];
 
-    // Set suggested mode
-    if (a.suggestedMode !== "unknown") {
+    // Set suggested mode (only if not locked to a specific preset)
+    if (!lockedMode && a.suggestedMode !== "unknown") {
       setMode(a.suggestedMode);
       const confidence = Math.round(a.confidence * 100);
       notes.push(`Detected ${a.suggestedMode.replace("-", " ")} pattern (${confidence}% confidence)`);

@@ -43,6 +43,69 @@
       "title": "Smart Find & Replace",
       "description": "Find and replace patterns in filenames with multi-rule support, regex capture groups, and file filters",
       "mode": "view"
+    },
+    {
+      "name": "preset-tv-show",
+      "title": "Rename as TV Show",
+      "subtitle": "Rebaptize",
+      "description": "Rename files into TV show format (Show Name S01E01)",
+      "mode": "view"
+    },
+    {
+      "name": "preset-anime",
+      "title": "Rename as Anime",
+      "subtitle": "Rebaptize",
+      "description": "Rename files into anime fansub format ([Group] Name - 01 [Quality])",
+      "mode": "view"
+    },
+    {
+      "name": "preset-movie",
+      "title": "Rename as Movie",
+      "subtitle": "Rebaptize",
+      "description": "Rename files into movie format (Name Year Quality)",
+      "mode": "view"
+    },
+    {
+      "name": "preset-sequential",
+      "title": "Rename Sequentially",
+      "subtitle": "Rebaptize",
+      "description": "Rename files with a prefix and sequential number (Prefix-001)",
+      "mode": "view"
+    },
+    {
+      "name": "preset-date-based",
+      "title": "Rename by Date",
+      "subtitle": "Rebaptize",
+      "description": "Rename files using their creation date",
+      "mode": "view"
+    },
+    {
+      "name": "preset-change-case",
+      "title": "Change Filename Case",
+      "subtitle": "Rebaptize",
+      "description": "Convert filenames to UPPERCASE, lowercase, Title Case, or Sentence case",
+      "mode": "view"
+    },
+    {
+      "name": "preset-swap-delimiter",
+      "title": "Swap Filename Delimiter",
+      "subtitle": "Rebaptize",
+      "description": "Replace dots, underscores, dashes, or any delimiter in filenames with another",
+      "mode": "view"
+    },
+    {
+      "name": "preset-auto-enumerate",
+      "title": "Auto Enumerate Files",
+      "subtitle": "Rebaptize",
+      "description": "Number files sequentially, optionally sorted by creation or modification date",
+      "mode": "view"
+    },
+    {
+      "name": "preset-change-extension",
+      "title": "Change File Extension",
+      "subtitle": "Rebaptize",
+      "description": "Bulk change file extensions (e.g. .jpeg to .jpg)",
+      "mode": "view"
     }
   ],
   "preferences": [
