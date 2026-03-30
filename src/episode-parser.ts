@@ -143,21 +143,59 @@ export function parseEpisode(fileName: string): ParsedEpisode | null {
 
 /**
  * Given a flat list of episode numbers (e.g. 1-50), figure out seasons.
- * episodesPerSeason = how many episodes per season.
- * Returns a map of episode number -> { season, episodeInSeason }.
+ * seasonEpCounts = array of episode counts per season, e.g. [7, 13, 13] for 3 seasons.
+ * Returns a map of absolute episode number -> { season, episodeInSeason }.
  */
 export function assignSeasons(
   episodes: number[],
-  episodesPerSeason: number,
+  seasonEpCounts: number[],
 ): Map<number, { season: number; episodeInSeason: number }> {
   const sorted = [...episodes].sort((a, b) => a - b);
   const result = new Map<number, { season: number; episodeInSeason: number }>();
 
+  // Build season boundaries from the counts
+  // e.g. [7, 13, 13] -> season 1 = eps 1-7, season 2 = eps 8-20, season 3 = eps 21-33
+  const boundaries: { season: number; start: number; end: number }[] = [];
+  let cumulative = 0;
+  for (let i = 0; i < seasonEpCounts.length; i++) {
+    const start = cumulative + 1;
+    const end = cumulative + seasonEpCounts[i];
+    boundaries.push({ season: i + 1, start, end });
+    cumulative = end;
+  }
+
   for (const ep of sorted) {
-    const season = Math.ceil(ep / episodesPerSeason);
-    const episodeInSeason = ((ep - 1) % episodesPerSeason) + 1;
-    result.set(ep, { season, episodeInSeason });
+    // Find which season this episode belongs to
+    const boundary = boundaries.find((b) => ep >= b.start && ep <= b.end);
+    if (boundary) {
+      result.set(ep, {
+        season: boundary.season,
+        episodeInSeason: ep - boundary.start + 1,
+      });
+    } else {
+      // Episode exceeds defined seasons — put it in the next season
+      const lastSeason = boundaries.length > 0 ? boundaries[boundaries.length - 1] : null;
+      if (lastSeason) {
+        const overflow = ep - lastSeason.end;
+        result.set(ep, {
+          season: lastSeason.season + 1,
+          episodeInSeason: overflow,
+        });
+      } else {
+        result.set(ep, { season: 1, episodeInSeason: ep });
+      }
+    }
   }
 
   return result;
+}
+
+/**
+ * Parse a season breakdown string like "7, 13, 13" into an array of numbers.
+ */
+export function parseSeasonBreakdown(input: string): number[] {
+  return input
+    .split(",")
+    .map((s) => parseInt(s.trim()))
+    .filter((n) => !isNaN(n) && n > 0);
 }

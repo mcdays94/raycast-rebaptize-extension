@@ -14,7 +14,7 @@ import {
 import { useState, useEffect } from "react";
 import { readdir, stat, mkdir, rename as fsRename } from "fs/promises";
 import { join, extname } from "path";
-import { parseEpisode, assignSeasons, type ParsedEpisode } from "./episode-parser";
+import { parseEpisode, assignSeasons, parseSeasonBreakdown, type ParsedEpisode } from "./episode-parser";
 import { hasTvdbKey, searchShow as tvdbSearch, buildEpisodeMap as tvdbBuildMap, type ShowInfo as TvdbShowInfo } from "./tvdb";
 import { hasTmdbKey, searchShow as tmdbSearch, buildEpisodeMap as tmdbBuildMap, type ShowInfo as TmdbShowInfo } from "./tmdb";
 import { getFinderFolder } from "./finder";
@@ -105,7 +105,7 @@ export default function SmartOrganize() {
   const [suggestionNote, setSuggestionNote] = useState("");
   const [showName, setShowName] = useState("");
   const [metadataSource, setMetadataSource] = useState<MetadataSource>("none");
-  const [epsPerSeason, setEpsPerSeason] = useState("12");
+  const [seasonBreakdown, setSeasonBreakdown] = useState("12");
   const [folderTemplate, setFolderTemplate] = useState("Season {season}");
   const [fileTemplate, setFileTemplate] = useState("{show}.S{season}E{episode}");
 
@@ -135,8 +135,8 @@ export default function SmartOrganize() {
         notes.push(`Show name: "${a.detectedShowName}"`);
       }
       if (a.estimatedEpisodesPerSeason) {
-        setEpsPerSeason(String(a.estimatedEpisodesPerSeason));
-        notes.push(`~${a.estimatedEpisodesPerSeason} eps/season`);
+        setSeasonBreakdown(String(a.estimatedEpisodesPerSeason));
+        notes.push(`~${a.estimatedEpisodesPerSeason} eps/season detected`);
       }
       if (a.detectedSeasons.length > 0) {
         notes.push(`Seasons: ${a.detectedSeasons.join(", ")}`);
@@ -263,17 +263,17 @@ export default function SmartOrganize() {
             title: `${sourceName} fetch failed, falling back to manual split`,
             message: error instanceof Error ? error.message : String(error),
           });
-          // Fallback
+          // Fallback to manual season breakdown
           const epNumbers = parsed.map((p) => p.episodeNumber);
-          const seasonMap = assignSeasons(epNumbers, parseInt(epsPerSeason) || 12);
+          const counts = parseSeasonBreakdown(seasonBreakdown);
+          const seasonMap = assignSeasons(epNumbers, counts.length > 0 ? counts : [12]);
           episodeMap = new Map();
           for (const [ep, info] of seasonMap) {
             episodeMap.set(ep, { season: info.season, episode: info.episodeInSeason });
           }
         }
       } else {
-        // Manual split by episodes per season
-        // If the parser already found season numbers, use those
+        // Manual mode — use season breakdown or existing filename info
         const hasSeasons = parsed.some((p) => p.seasonNumber !== null);
 
         if (hasSeasons) {
@@ -286,7 +286,8 @@ export default function SmartOrganize() {
           }
         } else {
           const epNumbers = parsed.map((p) => p.episodeNumber);
-          const seasonMap = assignSeasons(epNumbers, parseInt(epsPerSeason) || 12);
+          const counts = parseSeasonBreakdown(seasonBreakdown);
+          const seasonMap = assignSeasons(epNumbers, counts.length > 0 ? counts : [12]);
           episodeMap = new Map();
           for (const [ep, info] of seasonMap) {
             episodeMap.set(ep, { season: info.season, episode: info.episodeInSeason });
@@ -408,12 +409,12 @@ export default function SmartOrganize() {
 
       {metadataSource === "none" && (
         <Form.TextField
-          id="epsPerSeason"
+          id="seasonBreakdown"
           title="Episodes per Season"
-          placeholder="12"
-          value={epsPerSeason}
-          onChange={setEpsPerSeason}
-          info="Used to split flat episode numbers (1-50) into seasons. Ignored if filenames already contain season info (S01E01)."
+          placeholder="7, 13, 13, 13, 16"
+          value={seasonBreakdown}
+          onChange={setSeasonBreakdown}
+          info="Comma-separated episode counts per season. E.g. '7, 13, 13' means Season 1 has 7 eps, Season 2 has 13, Season 3 has 13. Ignored if filenames already contain season info (S01E01)."
         />
       )}
 
