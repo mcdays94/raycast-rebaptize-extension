@@ -5,20 +5,32 @@
   "description": "Give your files a new name. Bulk rename using presets for TV shows, anime, movies, sequential numbering, dates, or find & replace",
   "icon": "icon.png",
   "author": "miguelcaetanodias",
-  "categories": ["Productivity", "System"],
+  "categories": [
+    "Productivity",
+    "System"
+  ],
   "license": "MIT",
-  "platforms": ["macOS"],
+  "platforms": [
+    "macOS"
+  ],
   "commands": [
     {
       "name": "rebaptize",
       "title": "Rebaptize Files",
       "description": "Select a folder and bulk rename files using various patterns",
       "mode": "view"
+    },
+    {
+      "name": "sort-by-location",
+      "title": "Sort Photos by Location",
+      "description": "Organize photos into folders based on GPS location data from EXIF metadata",
+      "mode": "view"
     }
   ],
   "dependencies": {
     "@raycast/api": "^1.93.2",
-    "@raycast/utils": "^1.19.1"
+    "@raycast/utils": "^1.19.1",
+    "exif-reader": "^2.0.3"
   },
   "devDependencies": {
     "@raycast/eslint-config": "^1.0.11",

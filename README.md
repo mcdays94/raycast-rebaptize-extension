@@ -1,36 +1,25 @@
 # Rebaptize
 
-A [Raycast](https://raycast.com) extension for bulk renaming files in a folder using presets for common use-cases.
+A [Raycast](https://raycast.com) extension for bulk renaming and organizing files.
 
-Works with any file type.
+## Commands
 
-## Presets
+### Rebaptize Files
 
-### TV Show
-Rename files into standard TV show format.
-`Breaking.Bad.S01E01.mkv`
+Bulk rename files in a folder using presets for common use-cases. Works with any file type.
 
-### Anime
-Rename using the classic fansub convention with optional sub group and quality tags.
-`[SubsPlease] Jujutsu Kaisen - 01 [1080p].mkv`
+**Presets:**
 
-### Movie
-Rename into the standard movie format with optional year and quality.
-`Interstellar.2014.1080p.mkv`
+| Preset | Example Output |
+|---|---|
+| TV Show | `Breaking.Bad.S01E01.mkv` |
+| Anime | `[SubsPlease] Jujutsu Kaisen - 01 [1080p].mkv` |
+| Movie | `Interstellar.2014.1080p.mkv` |
+| Sequential | `Vacation-001.jpg` |
+| Date-Based | `Trip-2026-03-30_14-30-00-001.jpg` |
+| Find & Replace | `My.Old.Name.txt → My.New.Name.txt` |
 
-### Sequential
-Rename with a prefix and incrementing number. Configurable separator and zero-padding.
-`Vacation-001.jpg`
-
-### Date-Based
-Rename using the file's creation date. Supports YYYY-MM-DD, DD-MM-YYYY, and MM-DD-YYYY with optional prefix.
-`Trip-2026-03-30_14-30-00-001.jpg`
-
-### Find & Replace
-Find and replace text in filenames. Supports plain text and regular expressions.
-`My.Old.Name.txt → My.New.Name.txt`
-
-## Usage
+**Usage:**
 
 1. Open Raycast and search for **"Rebaptize Files"**
 2. Select a folder
@@ -38,6 +27,31 @@ Find and replace text in filenames. Supports plain text and regular expressions.
 4. Live preview updates as you type
 5. Submit to see a full preview of all renames
 6. Confirm to apply
+
+### Sort Photos by Location
+
+Organize photos into subfolders based on GPS location data embedded in EXIF metadata. Uses OpenStreetMap for reverse geocoding — no API key required.
+
+**Granularity options:**
+- **City** — e.g. `Lisbon/`, `Tokyo/`, `New York/`
+- **State / Region** — e.g. `California/`, `Bavaria/`
+- **Country** — e.g. `Portugal/`, `Japan/`
+
+**File actions:**
+- **Move** — moves files into location subfolders
+- **Copy** — copies files, keeping originals in place
+
+Photos without GPS data are left untouched.
+
+**Supported formats:** JPEG, TIFF, HEIC, DNG, CR2, NEF, ARW, ORF, RW2
+
+**Usage:**
+
+1. Open Raycast and search for **"Sort Photos by Location"**
+2. Select a folder of photos
+3. Choose granularity (city, state, or country) and action (move or copy)
+4. Preview the location groups and file counts
+5. Confirm to organize
 
 ## Requirements
 
