@@ -27,8 +27,10 @@ export interface RenameOptions {
   // Date mode
   dateFormat?: "YYYY-MM-DD" | "DD-MM-YYYY" | "MM-DD-YYYY";
   datePrefix?: string;
-  // Word delimiter (space, dot, underscore, dash)
+  // Word delimiter (space, dot, underscore, dash, or custom)
   wordDelimiter?: string;
+  // Suffix after SxxExx (e.g. "1080p", "PROPER")
+  suffix?: string;
   // Find & Replace mode
   find?: string;
   replace?: string;
@@ -63,11 +65,12 @@ function formatDate(date: Date, format: string): string {
   }
 }
 
-// TV Show: Breaking Bad S01E01.mkv (delimiter configurable)
-export function generateTvShowName(fileName: string, showName: string, season: number, episode: number, delimiter = " "): string {
+// TV Show: Breaking Bad S01E01 1080p.mkv (delimiter & suffix configurable)
+export function generateTvShowName(fileName: string, showName: string, season: number, episode: number, delimiter = " ", suffix = ""): string {
   const ext = extname(fileName);
   const sanitized = showName.replace(/\s+/g, delimiter);
-  return `${sanitized}${delimiter}S${padNumber(season, 2)}E${padNumber(episode, 2)}${ext}`;
+  const suffixPart = suffix ? `${delimiter}${suffix}` : "";
+  return `${sanitized}${delimiter}S${padNumber(season, 2)}E${padNumber(episode, 2)}${suffixPart}${ext}`;
 }
 
 // Anime: [SubGroup] Anime Name - 01 [1080p].mkv
@@ -166,6 +169,7 @@ export async function generatePreviews(
           options.season ?? 1,
           (options.startEpisode ?? 1) + i,
           options.wordDelimiter ?? " ",
+          options.suffix ?? "",
         );
         break;
       case "anime":

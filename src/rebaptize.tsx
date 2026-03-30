@@ -99,6 +99,8 @@ export default function Rebaptize() {
 
   // Word delimiter (shared by TV show & Movie)
   const [wordDelimiter, setWordDelimiter] = useState(" ");
+  const [customDelimiter, setCustomDelimiter] = useState("");
+  const [suffix, setSuffix] = useState("");
 
   // TV show
   const [showName, setShowName] = useState("");
@@ -214,6 +216,10 @@ export default function Rebaptize() {
     }
   }
 
+  function effectiveDelimiter(): string {
+    return wordDelimiter === "custom" ? customDelimiter : wordDelimiter;
+  }
+
   async function handleSubmit(values: { folder: string[] }) {
     const folder = values.folder?.[0] || folderPath;
     if (!folder) {
@@ -239,7 +245,8 @@ export default function Rebaptize() {
           options.showName = showName.trim();
           options.season = parseInt(season) || 1;
           options.startEpisode = parseInt(startEpisode) || 1;
-          options.wordDelimiter = wordDelimiter;
+          options.wordDelimiter = effectiveDelimiter();
+          options.suffix = suffix.trim();
           break;
         case "anime":
           if (!animeName.trim()) {
@@ -260,7 +267,7 @@ export default function Rebaptize() {
           options.movieName = movieName.trim();
           options.year = year.trim();
           options.movieQuality = movieQuality.trim();
-          options.wordDelimiter = wordDelimiter;
+          options.wordDelimiter = effectiveDelimiter();
           break;
         case "sequential":
           if (!prefix.trim()) {
@@ -300,9 +307,10 @@ export default function Rebaptize() {
 
   // Live preview helpers
   function tvPreview(): string {
-    const d = wordDelimiter || " ";
+    const d = effectiveDelimiter() || " ";
     const name = (showName.trim() || "Show Name").replace(/\s+/g, d);
-    return `${name}${d}S${(season || "1").padStart(2, "0")}E${(startEpisode || "1").padStart(2, "0")}.ext`;
+    const sfx = suffix.trim() ? `${d}${suffix.trim()}` : "";
+    return `${name}${d}S${(season || "1").padStart(2, "0")}E${(startEpisode || "1").padStart(2, "0")}${sfx}.ext`;
   }
 
   function animePreview(): string {
@@ -312,7 +320,7 @@ export default function Rebaptize() {
   }
 
   function moviePreview(): string {
-    const d = wordDelimiter || " ";
+    const d = effectiveDelimiter() || " ";
     const parts = [(movieName.trim() || "Movie Name").replace(/\s+/g, d)];
     if (year.trim()) parts.push(year.trim());
     if (movieQuality.trim()) parts.push(movieQuality.trim());
@@ -390,7 +398,12 @@ export default function Rebaptize() {
             <Form.Dropdown.Item value="." title="Dot (.)" />
             <Form.Dropdown.Item value="_" title="Underscore (_)" />
             <Form.Dropdown.Item value="-" title="Dash (-)" />
+            <Form.Dropdown.Item value="custom" title="Custom..." />
           </Form.Dropdown>
+          {wordDelimiter === "custom" && (
+            <Form.TextField id="customDelimiter" title="Custom Separator" placeholder=" - " value={customDelimiter} onChange={setCustomDelimiter} />
+          )}
+          <Form.TextField id="suffix" title="Suffix (Optional)" placeholder="1080p PROPER" value={suffix} onChange={setSuffix} info="Added after S01E01. e.g. 1080p, PROPER, BluRay" />
           <Form.Description title="Preview" text={tvPreview()} />
         </>
       )}
@@ -415,7 +428,11 @@ export default function Rebaptize() {
             <Form.Dropdown.Item value="." title="Dot (.)" />
             <Form.Dropdown.Item value="_" title="Underscore (_)" />
             <Form.Dropdown.Item value="-" title="Dash (-)" />
+            <Form.Dropdown.Item value="custom" title="Custom..." />
           </Form.Dropdown>
+          {wordDelimiter === "custom" && (
+            <Form.TextField id="customDelimiterMovie" title="Custom Separator" placeholder=" - " value={customDelimiter} onChange={setCustomDelimiter} />
+          )}
           <Form.Description title="Preview" text={moviePreview()} />
         </>
       )}
