@@ -1,22 +1,22 @@
 # Rebaptize
 
-Bulk rename and organize files directly from Raycast. 30 commands covering everything from instant one-shot case conversion to smart TV show episode organization with TheTVDB metadata.
+Bulk rename and organize files directly from Raycast. 30 commands covering everything from instant one-shot case conversion to smart TV show episode organization with metadata from TMDB and TheTVDB.
 
 Every function is its own Raycast command — assign aliases and hotkeys to the ones you use most. All commands auto-detect the current Finder folder.
 
 ## Getting Started
 
 1. Install from the Raycast Store
-2. Open a Finder window to the folder you want to rename
-3. Open Raycast and search for any Rebaptize command
+2. Open a Finder window to the folder you want to work with
+3. Open Raycast and search for any command (e.g. "Rename Files", "Smart Organize Episodes")
 
-No additional setup required. To enable TheTVDB metadata lookup for Smart Organize Episodes, add your free API key in Raycast Preferences (see [TheTVDB Integration](#thetvdb-integration-optional)).
+No additional setup required. To enable online metadata lookup for episode organizing, see [Metadata Integration](#metadata-integration-optional).
 
 ## Commands
 
-### Rebaptize Files
+### Rename Files
 
-The main command. Select a rename preset, configure options, preview every rename, then confirm.
+The main command. Select a rename preset, configure options, preview every rename, then confirm. Smart detection analyzes the folder and auto-fills fields like show name and season.
 
 **TV Show** — Rename into `S01E01` format with configurable word separator and optional suffix.
 
@@ -53,7 +53,7 @@ IMG_0002.jpg     Beach-Trip-002.jpg
 DSC_3345.jpg     Beach-Trip-003.jpg
 ```
 
-**Date-Based** — Rename using creation date.
+**Date-Based** — Rename using file creation date.
 
 ```
 Before           After
@@ -158,9 +158,9 @@ Reverts the last instant command or script execution. Available within 5 minutes
 
 ## Preset Shortcuts
 
-Each preset is available as a standalone command for direct access:
+Each preset from Rename Files is also available as a standalone command for direct access:
 
-| Command | Preset |
+| Command | Output Format |
 |---|---|
 | Rename as TV Show | `Show Name S01E01.ext` |
 | Rename as Anime | `[Group] Name - 01 [Quality].ext` |
@@ -217,8 +217,12 @@ If both keys are configured, you can choose which source to use per command run.
 ## Tips
 
 - **Aliases:** Search any command → `Cmd + K` → Configure Command → set an alias (e.g. `tv` for Rename as TV Show, `undo` for Undo Last Rename)
-- **Hotkeys:** Same menu — assign a global keyboard shortcut
-- **Finder:** All commands auto-detect the current Finder folder. Navigate to the right folder before invoking
-- **Smart detection:** Rebaptize Files and Smart Organize analyze files and auto-fill show name, season numbers, and suggested preset
-- **Undo:** After any instant command or script, run Undo Last Rename within 5 minutes to revert
-- **Scripts:** Build and save custom rename pipelines with Create Rename Script, run them from Run Rename Script
+- **Hotkeys:** Same menu — assign a global keyboard shortcut to any command
+- **Finder:** All commands auto-detect the current Finder folder. Navigate to the right folder before invoking.
+- **Smart detection:** Rename Files and Smart Organize analyze files on launch and auto-fill show name, season numbers, and suggested preset.
+- **Undo:** After any instant command or script, run Undo Last Rename within 5 minutes to revert.
+- **Scripts:** Build and save custom rename pipelines with Create Rename Script, run them from Run Rename Script.
+
+## Known Issues
+
+- **WARP / Corporate Proxies:** Commands that make network requests (Sort Photos by Location, TMDB/TheTVDB metadata lookup) may fail behind Cloudflare WARP or corporate proxies that inject self-signed certificates. All other commands work offline.

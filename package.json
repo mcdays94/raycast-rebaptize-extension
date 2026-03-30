@@ -16,7 +16,7 @@
   "commands": [
     {
       "name": "rebaptize",
-      "title": "Rebaptize Files",
+      "title": "Rename Files",
       "description": "Bulk rename files using presets for TV shows, anime, movies, sequential, date, or find & replace",
       "mode": "view"
     },
