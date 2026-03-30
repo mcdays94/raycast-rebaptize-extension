@@ -15,9 +15,13 @@ import { useState, useEffect } from "react";
 import { readdir, stat, mkdir, rename as fsRename } from "fs/promises";
 import { join, extname } from "path";
 import { parseEpisode, assignSeasons, type ParsedEpisode } from "./episode-parser";
-import { hasTvdbKey, searchShow, buildEpisodeMap, type ShowInfo } from "./tvdb";
+import { hasTvdbKey, searchShow as tvdbSearch, buildEpisodeMap as tvdbBuildMap, type ShowInfo as TvdbShowInfo } from "./tvdb";
+import { hasTmdbKey, searchShow as tmdbSearch, buildEpisodeMap as tmdbBuildMap, type ShowInfo as TmdbShowInfo } from "./tmdb";
 import { getFinderFolder } from "./finder";
 import { analyzeFolder } from "./file-analyzer";
+
+type ShowInfo = TvdbShowInfo | TmdbShowInfo;
+type MetadataSource = "none" | "tmdb" | "tvdb";
 
 function isHidden(name: string): boolean {
   return name.startsWith(".");
@@ -93,18 +97,20 @@ function PreviewList({ folderPath, files }: { folderPath: string; files: Organiz
 
 export default function SmartOrganize() {
   const { push } = useNavigation();
+  const tmdbAvailable = hasTmdbKey();
   const tvdbAvailable = hasTvdbKey();
+  const anySourceAvailable = tmdbAvailable || tvdbAvailable;
 
   const [folderPath, setFolderPath] = useState<string | null>(null);
   const [suggestionNote, setSuggestionNote] = useState("");
   const [showName, setShowName] = useState("");
-  const [useTvdb, setUseTvdb] = useState(false);
+  const [metadataSource, setMetadataSource] = useState<MetadataSource>("none");
   const [epsPerSeason, setEpsPerSeason] = useState("12");
   const [folderTemplate, setFolderTemplate] = useState("Season {season}");
   const [fileTemplate, setFileTemplate] = useState("{show}.S{season}E{episode}");
 
-  // TVDB search state
-  const [tvdbResults, setTvdbResults] = useState<ShowInfo[]>([]);
+  // Search state (shared by TMDB/TVDB)
+  const [searchResults, setSearchResults] = useState<ShowInfo[]>([]);
   const [selectedShowId, setSelectedShowId] = useState<string>("");
   const [searching, setSearching] = useState(false);
 
@@ -151,21 +157,22 @@ export default function SmartOrganize() {
   }
 
   useEffect(() => {
-    if (!useTvdb || !tvdbAvailable || showName.length < 2) {
-      setTvdbResults([]);
+    if (metadataSource === "none" || showName.length < 2) {
+      setSearchResults([]);
       return;
     }
 
     const timer = setTimeout(async () => {
       setSearching(true);
       try {
-        const results = await searchShow(showName);
-        setTvdbResults(results);
+        const searchFn = metadataSource === "tmdb" ? tmdbSearch : tvdbSearch;
+        const results = await searchFn(showName);
+        setSearchResults(results);
         if (results.length > 0 && !selectedShowId) {
           setSelectedShowId(String(results[0].id));
         }
       } catch {
-        // TVDB search failed, not critical
+        // search failed, not critical
       }
       setSearching(false);
     }, 500);
@@ -226,19 +233,21 @@ export default function SmartOrganize() {
       // Determine season/episode mapping
       let episodeMap: Map<number, { season: number; episode: number; name?: string }>;
 
-      if (useTvdb && tvdbAvailable && selectedShowId) {
-        // Use TVDB data
+      if (metadataSource !== "none" && selectedShowId) {
+        // Use TMDB or TVDB data
+        const sourceName = metadataSource === "tmdb" ? "TMDB" : "TheTVDB";
+        const buildFn = metadataSource === "tmdb" ? tmdbBuildMap : tvdbBuildMap;
         try {
-          await showToast({ style: Toast.Style.Animated, title: "Fetching episode data from TheTVDB..." });
-          const tvdbMap = await buildEpisodeMap(parseInt(selectedShowId));
+          await showToast({ style: Toast.Style.Animated, title: `Fetching episode data from ${sourceName}...` });
+          const remoteMap = await buildFn(parseInt(selectedShowId));
           episodeMap = new Map();
-          for (const [absEp, info] of tvdbMap) {
+          for (const [absEp, info] of remoteMap) {
             episodeMap.set(absEp, { season: info.season, episode: info.episode, name: info.name });
           }
         } catch (error) {
           await showToast({
             style: Toast.Style.Failure,
-            title: "TVDB fetch failed, falling back to manual split",
+            title: `${sourceName} fetch failed, falling back to manual split`,
             message: error instanceof Error ? error.message : String(error),
           });
           // Fallback
@@ -353,24 +362,28 @@ export default function SmartOrganize() {
 
       <Form.Separator />
 
-      {tvdbAvailable && (
-        <Form.Checkbox
-          id="useTvdb"
-          label="Use TheTVDB for season/episode data"
-          value={useTvdb}
-          onChange={setUseTvdb}
-        />
+      {anySourceAvailable && (
+        <Form.Dropdown
+          id="metadataSource"
+          title="Metadata Source"
+          value={metadataSource}
+          onChange={(v) => { setMetadataSource(v as MetadataSource); setSearchResults([]); setSelectedShowId(""); }}
+        >
+          <Form.Dropdown.Item value="none" title="Manual (set episodes per season)" />
+          {tmdbAvailable && <Form.Dropdown.Item value="tmdb" title="TMDB (free)" />}
+          {tvdbAvailable && <Form.Dropdown.Item value="tvdb" title="TheTVDB (subscription)" />}
+        </Form.Dropdown>
       )}
 
-      {useTvdb && tvdbAvailable && tvdbResults.length > 0 && (
+      {metadataSource !== "none" && searchResults.length > 0 && (
         <Form.Dropdown
-          id="tvdbShow"
-          title="TVDB Match"
+          id="showMatch"
+          title={metadataSource === "tmdb" ? "TMDB Match" : "TVDB Match"}
           value={selectedShowId}
           onChange={setSelectedShowId}
           isLoading={searching}
         >
-          {tvdbResults.map((r) => (
+          {searchResults.map((r) => (
             <Form.Dropdown.Item
               key={r.id}
               value={String(r.id)}
@@ -380,7 +393,7 @@ export default function SmartOrganize() {
         </Form.Dropdown>
       )}
 
-      {(!useTvdb || !tvdbAvailable) && (
+      {metadataSource === "none" && (
         <Form.TextField
           id="epsPerSeason"
           title="Episodes per Season"
@@ -413,13 +426,13 @@ export default function SmartOrganize() {
 
       <Form.Description
         title="How It Works"
-        text={`Scans filenames for episode numbers (supports S01E01, 001, EP01, anime formats, etc.), ${tvdbAvailable ? "optionally fetches season data from TheTVDB, " : ""}then renames and sorts files into season folders.\n\nFiles that can't be parsed are left untouched.`}
+        text={`Scans filenames for episode numbers (supports S01E01, 001, EP01, anime formats, etc.), ${anySourceAvailable ? "optionally fetches season data from TMDB or TheTVDB, " : ""}then renames and sorts files into season folders.\n\nFiles that can't be parsed are left untouched.`}
       />
 
-      {!tvdbAvailable && (
+      {!anySourceAvailable && (
         <Form.Description
-          title="TheTVDB Integration"
-          text="Add a TVDB API key in the extension preferences to enable automatic season/episode lookup. Get a free key at thetvdb.com."
+          title="Metadata Integration"
+          text="Add a TMDB API key (free at themoviedb.org) or a TheTVDB API key ($12/year at thetvdb.com) in extension preferences to enable automatic season/episode lookup."
         />
       )}
     </Form>

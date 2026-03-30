@@ -8,7 +8,9 @@
 /* eslint-disable @typescript-eslint/ban-types */
 
 type ExtensionPreferences = {
-  /** TheTVDB API Key - Optional. Get a free API key at thetvdb.com to enable automatic season/episode lookup for Smart Organize Episodes. */
+  /** TMDB API Key (Free) - Optional. Get a free API key at themoviedb.org to enable automatic season/episode lookup for Smart Organize Episodes. */
+  "tmdbApiKey"?: string,
+  /** TheTVDB API Key ($12/year) - Optional. Requires a $12/year subscription at thetvdb.com. Alternative to TMDB for season/episode metadata. */
   "tvdbApiKey"?: string
 }
 

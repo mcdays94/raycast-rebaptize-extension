@@ -220,9 +220,16 @@
   ],
   "preferences": [
     {
+      "name": "tmdbApiKey",
+      "title": "TMDB API Key (Free)",
+      "description": "Optional. Get a free API key at themoviedb.org to enable automatic season/episode lookup for Smart Organize Episodes.",
+      "type": "password",
+      "required": false
+    },
+    {
       "name": "tvdbApiKey",
-      "title": "TheTVDB API Key",
-      "description": "Optional. Get a free API key at thetvdb.com to enable automatic season/episode lookup for Smart Organize Episodes.",
+      "title": "TheTVDB API Key ($12/year)",
+      "description": "Optional. Requires a $12/year subscription at thetvdb.com. Alternative to TMDB for season/episode metadata.",
       "type": "password",
       "required": false
     }

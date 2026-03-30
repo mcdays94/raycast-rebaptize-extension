@@ -109,7 +109,7 @@ Before (flat folder):         After:
 026.mkv                       Season 02/Demon.Slayer.S02E13.mkv
 ```
 
-Customizable folder and file templates. Optionally fetches real season data from TheTVDB.
+Customizable folder and file templates. Optionally fetches real season data from TMDB (free) or TheTVDB ($12/year).
 
 ### Smart Find & Replace
 
@@ -192,15 +192,27 @@ Zero-UI commands that execute immediately against the current Finder folder. No 
 | Enumerate Files by Name | Alphabetical → `001.ext`, `002.ext`, `003.ext` |
 | Enumerate Files by Date Created | Oldest first → `001.ext`, `002.ext`, `003.ext` |
 
-## TheTVDB Integration (Optional)
+## Metadata Integration (Optional)
 
-Smart Organize Episodes can fetch real season and episode data from [TheTVDB](https://thetvdb.com).
+Smart Organize Episodes can fetch real season and episode data from online databases. Two sources are supported:
 
-1. Create a free account at [thetvdb.com](https://thetvdb.com)
+### TMDB (Free)
+
+[The Movie Database](https://www.themoviedb.org/) — completely free, excellent anime and TV coverage.
+
+1. Create a free account at [themoviedb.org](https://www.themoviedb.org/signup)
+2. Go to [Settings → API](https://www.themoviedb.org/settings/api) and request an API key
+3. Open Raycast Preferences → Extensions → Rebaptize → paste the key in **TMDB API Key (Free)**
+
+### TheTVDB ($12/year)
+
+[TheTVDB](https://thetvdb.com) — the classic TV metadata source, requires a subscription.
+
+1. Subscribe at [thetvdb.com/subscribe](https://thetvdb.com/subscribe) ($12/year)
 2. Get an API key from your [dashboard](https://www.thetvdb.com/dashboard/account/apikey)
 3. Open Raycast Preferences → Extensions → Rebaptize → paste the key in **TheTVDB API Key**
 
-Without a key, everything works — you set the episodes-per-season count manually instead.
+If both keys are configured, you can choose which source to use per command run. Without either key, everything still works — you set the episodes-per-season count manually.
 
 ## Tips
 
