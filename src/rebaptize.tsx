@@ -431,7 +431,7 @@ export default function Rebaptize({ initialMode }: { initialMode?: RenameMode } 
 
   return (
     <Form
-      navigationTitle="Rebaptize"
+      
       actions={
         <ActionPanel>
           <Action.SubmitForm title="Preview Renames" icon={Icon.Eye} onSubmit={handleSubmit} />

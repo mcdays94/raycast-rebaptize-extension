@@ -213,7 +213,7 @@ export default function SortByDate() {
 
   return (
     <Form
-      navigationTitle="Sort by Date"
+      
       actions={
         <ActionPanel>
           <Action.SubmitForm title="Scan Files" icon={Icon.MagnifyingGlass} onSubmit={handleSubmit} />

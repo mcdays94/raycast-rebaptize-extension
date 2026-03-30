@@ -155,7 +155,7 @@ export default function RunScript() {
   }
 
   return (
-    <List navigationTitle="Run Rename Script" isLoading={loading}>
+    <List isLoading={loading}>
       {scripts.length === 0 && !loading && (
         <List.EmptyView
           title="No Scripts"

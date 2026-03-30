@@ -254,7 +254,7 @@ export default function SmartFindReplace() {
 
   return (
     <Form
-      navigationTitle="Smart Find & Replace"
+      
       actions={
         <ActionPanel>
           <Action.SubmitForm title="Preview Renames" icon={Icon.Eye} onSubmit={handleSubmit} />

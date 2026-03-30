@@ -172,7 +172,7 @@ export default function SortByLocation() {
 
   return (
     <Form
-      navigationTitle="Sort by Location"
+      
       actions={
         <ActionPanel>
           <Action.SubmitForm title="Scan Photos" icon={Icon.MagnifyingGlass} onSubmit={handleSubmit} />

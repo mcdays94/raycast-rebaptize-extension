@@ -323,7 +323,7 @@ export default function SmartOrganize() {
 
   return (
     <Form
-      navigationTitle="Smart Organize Episodes"
+      
       actions={
         <ActionPanel>
           <Action.SubmitForm title="Scan and Preview" icon={Icon.Eye} onSubmit={handleSubmit} />

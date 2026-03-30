@@ -354,7 +354,7 @@ export default function CreateScript({ existingScript, onSaved }: { existingScri
 
   return (
     <List
-      navigationTitle={isEditing ? `Edit: ${existingScript?.name}` : "Create Rename Script"}
+      navigationTitle={isEditing ? `Edit: ${existingScript?.name}` : undefined}
       searchBarPlaceholder="Script pipeline..."
       actions={
         <ActionPanel>
