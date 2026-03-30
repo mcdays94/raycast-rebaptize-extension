@@ -178,7 +178,7 @@ export default function SmartOrganize() {
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [showName, useTvdb]);
+  }, [showName, metadataSource]);
 
   async function handleSubmit(values: { folder: string[] }) {
     const folder = values.folder?.[0] || folderPath;
