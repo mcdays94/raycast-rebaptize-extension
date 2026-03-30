@@ -70,6 +70,8 @@ declare namespace Preferences {
   export type InstantEnumerateByName = ExtensionPreferences & {}
   /** Preferences accessible in the `instant-enumerate-by-date` command */
   export type InstantEnumerateByDate = ExtensionPreferences & {}
+  /** Preferences accessible in the `instant-undo` command */
+  export type InstantUndo = ExtensionPreferences & {}
 }
 
 declare namespace Arguments {
@@ -127,5 +129,7 @@ declare namespace Arguments {
   export type InstantEnumerateByName = {}
   /** Arguments passed to the `instant-enumerate-by-date` command */
   export type InstantEnumerateByDate = {}
+  /** Arguments passed to the `instant-undo` command */
+  export type InstantUndo = {}
 }
 

@@ -1,13 +1,12 @@
-import { showToast, Toast, showHUD } from "@raycast/api";
+import { showHUD } from "@raycast/api";
 import { stat, rename as fsRename } from "fs/promises";
 import { join, extname } from "path";
-import { getFinderFiles } from "./instant-runner";
+import { getFinderFiles, saveUndoState } from "./instant-runner";
 
 export default async function () {
   try {
     const { folderPath, files } = await getFinderFiles();
 
-    // Sort by creation date
     const withDates = await Promise.all(
       files.map(async (f) => {
         const s = await stat(join(folderPath, f));
@@ -32,26 +31,9 @@ export default async function () {
       await fsRename(join(folderPath, r.original), join(folderPath, r.renamed));
     }
 
-    await showToast({
-      style: Toast.Style.Success,
-      title: `Enumerated ${changed.length} files by date`,
-      message: "Press ⌘Z to undo",
-      primaryAction: {
-        title: "Undo",
-        shortcut: { modifiers: ["cmd"], key: "z" },
-        onAction: async () => {
-          try {
-            for (const r of [...changed].reverse()) {
-              await fsRename(join(folderPath, r.renamed), join(folderPath, r.original));
-            }
-            await showHUD(`Undid ${changed.length} renames`);
-          } catch (error) {
-            await showToast({ style: Toast.Style.Failure, title: "Undo failed", message: error instanceof Error ? error.message : String(error) });
-          }
-        },
-      },
-    });
+    await saveUndoState({ folderPath, changes: changed, actionName: "Enumerate by Date", timestamp: Date.now() });
+    await showHUD(`Enumerated ${changed.length} files by date — run "Undo Last Rename" to revert`);
   } catch (error) {
-    await showToast({ style: Toast.Style.Failure, title: "Enumerate by Date", message: error instanceof Error ? error.message : String(error) });
+    await showHUD(error instanceof Error ? error.message : String(error));
   }
 }

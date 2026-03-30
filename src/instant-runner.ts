@@ -1,5 +1,5 @@
-import { showToast, Toast, showHUD } from "@raycast/api";
-import { readdir, stat, rename as fsRename } from "fs/promises";
+import { showHUD, environment } from "@raycast/api";
+import { readdir, stat, rename as fsRename, writeFile } from "fs/promises";
 import { join } from "path";
 import { getFinderFolder } from "./finder";
 
@@ -11,6 +11,24 @@ export interface RenameResult {
   original: string;
   renamed: string;
 }
+
+interface UndoState {
+  folderPath: string;
+  changes: RenameResult[];
+  actionName: string;
+  timestamp: number;
+}
+
+/** Path to persist undo state between commands */
+const UNDO_PATH = join(environment.supportPath, "undo-state.json");
+
+/** Save undo state to disk so the "Undo Last Rename" command can read it. */
+export async function saveUndoState(state: UndoState): Promise<void> {
+  await writeFile(UNDO_PATH, JSON.stringify(state, null, 2));
+}
+
+/** Exported for the undo command */
+export { UNDO_PATH };
 
 /**
  * Get all non-hidden files in the current Finder folder, sorted by name.
@@ -39,8 +57,8 @@ export async function getFinderFiles(): Promise<{ folderPath: string; files: str
 }
 
 /**
- * Run an instant rename: apply transform, execute immediately, show undo toast.
- * No confirmation dialog — runs instantly. Undo available via toast action.
+ * Run an instant rename: apply transform, execute immediately, save undo state.
+ * No confirmation dialog, no UI — runs instantly and shows a HUD.
  */
 export async function runInstantRename(
   transform: (fileName: string) => string,
@@ -66,36 +84,16 @@ export async function runInstantRename(
       await fsRename(join(folderPath, r.original), join(folderPath, r.renamed));
     }
 
-    // Show success toast with undo action
-    await showToast({
-      style: Toast.Style.Success,
-      title: `${actionName}: ${changed.length} files`,
-      message: "Press ⌘Z to undo",
-      primaryAction: {
-        title: "Undo",
-        shortcut: { modifiers: ["cmd"], key: "z" },
-        onAction: async () => {
-          try {
-            // Reverse all renames
-            for (const r of changed) {
-              await fsRename(join(folderPath, r.renamed), join(folderPath, r.original));
-            }
-            await showHUD(`Undid ${changed.length} renames`);
-          } catch (error) {
-            await showToast({
-              style: Toast.Style.Failure,
-              title: "Undo failed",
-              message: error instanceof Error ? error.message : String(error),
-            });
-          }
-        },
-      },
+    // Save undo state to disk
+    await saveUndoState({
+      folderPath,
+      changes: changed,
+      actionName,
+      timestamp: Date.now(),
     });
+
+    await showHUD(`${actionName}: ${changed.length} files renamed — run "Undo Last Rename" to revert`);
   } catch (error) {
-    await showToast({
-      style: Toast.Style.Failure,
-      title: actionName,
-      message: error instanceof Error ? error.message : String(error),
-    });
+    await showHUD(error instanceof Error ? error.message : String(error));
   }
 }

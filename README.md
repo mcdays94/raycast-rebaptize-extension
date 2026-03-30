@@ -115,6 +115,7 @@ These run immediately with **no UI** — just execute against the current Finder
 | Collapse Multiple Spaces | `my  show   name` → `my show name` |
 | Enumerate Files by Name | Alphabetical order → `001.ext`, `002.ext` |
 | Enumerate Files by Date Created | Oldest first → `001.ext`, `002.ext` |
+| **Undo Last Rename** | Reverts the last instant command (within 5 minutes) |
 
 ---
 
@@ -133,7 +134,7 @@ Without a key, the extension still works — it uses manual episodes-per-season 
 
 - **Aliases:** Open Raycast → search for any command → `⌘K` → Configure Command → set an Alias (e.g. `uc` for Uppercase All)
 - **Hotkeys:** Same menu — assign a global hotkey to any command
-- **Undo:** Instant commands show a toast with `⌘Z` to undo. Act quickly — the toast disappears after a few seconds.
+- **Undo:** After any instant command, run **"Undo Last Rename"** to revert. Works within 5 minutes. Assign it an alias like `undo` for quick access.
 - **Finder:** All commands auto-detect the Finder folder. Just have Finder open to the right folder before running a command.
 
 ## Requirements

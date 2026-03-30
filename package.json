@@ -197,6 +197,13 @@
       "subtitle": "Rebaptize",
       "description": "Instantly number files 001, 002, 003... sorted by creation date (oldest first)",
       "mode": "no-view"
+    },
+    {
+      "name": "instant-undo",
+      "title": "Undo Last Rename",
+      "subtitle": "Rebaptize",
+      "description": "Revert the last instant rename command (available for 5 minutes after execution)",
+      "mode": "no-view"
     }
   ],
   "preferences": [
