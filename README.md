@@ -31,7 +31,7 @@ Auto-detect episode numbers from filenames and organize into season folders with
 **Season splitting:**
 - If filenames already contain season info (`S01E01`), it's used directly
 - Otherwise, flat episode numbers (1, 2, ... 50) are split by configurable episodes-per-season
-- With a **TMDB API key**, season/episode data is fetched automatically from The Movie Database — no manual config needed
+- With a **TheTVDB API key**, season/episode data is fetched automatically from thetvdb.com — no manual config needed
 
 **Customizable templates:**
 - Folder: `Season {season}`, `{show} - Season {season}`, etc.
@@ -61,14 +61,14 @@ Organize photos into subfolders based on GPS data in EXIF metadata. Uses OpenStr
 
 Supported formats: JPEG, TIFF, HEIC, DNG, and various RAW formats.
 
-## TMDB Integration (Optional)
+## TheTVDB Integration (Optional)
 
-The **Smart Organize Episodes** command can optionally use [TMDB](https://www.themoviedb.org/) to automatically fetch season and episode data for any TV show or anime.
+The **Smart Organize Episodes** command can optionally use [TheTVDB](https://thetvdb.com) to automatically fetch season and episode data for any TV show or anime.
 
 To enable:
-1. Get a free API key at [themoviedb.org](https://www.themoviedb.org/settings/api)
+1. Create an account at [thetvdb.com](https://thetvdb.com) and get a free API key from your [dashboard](https://www.thetvdb.com/dashboard/account/apikey)
 2. Open Raycast Preferences → Extensions → Rebaptize
-3. Paste your API key in the **TMDB API Key** field
+3. Paste your API key in the **TheTVDB API Key** field
 
 Without a key, the extension still works — it just uses manual episodes-per-season splitting.
 

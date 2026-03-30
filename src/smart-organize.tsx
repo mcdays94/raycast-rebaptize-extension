@@ -15,7 +15,7 @@ import { useState, useEffect } from "react";
 import { readdir, stat, mkdir, rename as fsRename } from "fs/promises";
 import { join, extname } from "path";
 import { parseEpisode, assignSeasons, type ParsedEpisode } from "./episode-parser";
-import { hasTmdbKey, searchShow, buildEpisodeMap, type ShowInfo } from "./tmdb";
+import { hasTvdbKey, searchShow, buildEpisodeMap, type ShowInfo } from "./tvdb";
 
 function isHidden(name: string): boolean {
   return name.startsWith(".");
@@ -91,22 +91,22 @@ function PreviewList({ folderPath, files }: { folderPath: string; files: Organiz
 
 export default function SmartOrganize() {
   const { push } = useNavigation();
-  const tmdbAvailable = hasTmdbKey();
+  const tvdbAvailable = hasTvdbKey();
 
   const [showName, setShowName] = useState("");
-  const [useTmdb, setUseTmdb] = useState(false);
+  const [useTvdb, setUseTvdb] = useState(false);
   const [epsPerSeason, setEpsPerSeason] = useState("12");
   const [folderTemplate, setFolderTemplate] = useState("Season {season}");
   const [fileTemplate, setFileTemplate] = useState("{show}.S{season}E{episode}");
 
-  // TMDB search state
-  const [tmdbResults, setTmdbResults] = useState<ShowInfo[]>([]);
+  // TVDB search state
+  const [tvdbResults, setTvdbResults] = useState<ShowInfo[]>([]);
   const [selectedShowId, setSelectedShowId] = useState<string>("");
   const [searching, setSearching] = useState(false);
 
   useEffect(() => {
-    if (!useTmdb || !tmdbAvailable || showName.length < 2) {
-      setTmdbResults([]);
+    if (!useTvdb || !tvdbAvailable || showName.length < 2) {
+      setTvdbResults([]);
       return;
     }
 
@@ -114,18 +114,18 @@ export default function SmartOrganize() {
       setSearching(true);
       try {
         const results = await searchShow(showName);
-        setTmdbResults(results);
+        setTvdbResults(results);
         if (results.length > 0 && !selectedShowId) {
           setSelectedShowId(String(results[0].id));
         }
       } catch {
-        // TMDB search failed, not critical
+        // TVDB search failed, not critical
       }
       setSearching(false);
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [showName, useTmdb]);
+  }, [showName, useTvdb]);
 
   async function handleSubmit(values: { folder: string[] }) {
     const folderPaths = values.folder;
@@ -181,19 +181,19 @@ export default function SmartOrganize() {
       // Determine season/episode mapping
       let episodeMap: Map<number, { season: number; episode: number; name?: string }>;
 
-      if (useTmdb && tmdbAvailable && selectedShowId) {
-        // Use TMDB data
+      if (useTvdb && tvdbAvailable && selectedShowId) {
+        // Use TVDB data
         try {
-          await showToast({ style: Toast.Style.Animated, title: "Fetching episode data from TMDB..." });
-          const tmdbMap = await buildEpisodeMap(parseInt(selectedShowId));
+          await showToast({ style: Toast.Style.Animated, title: "Fetching episode data from TheTVDB..." });
+          const tvdbMap = await buildEpisodeMap(parseInt(selectedShowId));
           episodeMap = new Map();
-          for (const [absEp, info] of tmdbMap) {
+          for (const [absEp, info] of tvdbMap) {
             episodeMap.set(absEp, { season: info.season, episode: info.episode, name: info.name });
           }
         } catch (error) {
           await showToast({
             style: Toast.Style.Failure,
-            title: "TMDB fetch failed, falling back to manual split",
+            title: "TVDB fetch failed, falling back to manual split",
             message: error instanceof Error ? error.message : String(error),
           });
           // Fallback
@@ -303,24 +303,24 @@ export default function SmartOrganize() {
 
       <Form.Separator />
 
-      {tmdbAvailable && (
+      {tvdbAvailable && (
         <Form.Checkbox
-          id="useTmdb"
-          label="Use TMDB for season/episode data"
-          value={useTmdb}
-          onChange={setUseTmdb}
+          id="useTvdb"
+          label="Use TheTVDB for season/episode data"
+          value={useTvdb}
+          onChange={setUseTvdb}
         />
       )}
 
-      {useTmdb && tmdbAvailable && tmdbResults.length > 0 && (
+      {useTvdb && tvdbAvailable && tvdbResults.length > 0 && (
         <Form.Dropdown
-          id="tmdbShow"
-          title="TMDB Match"
+          id="tvdbShow"
+          title="TVDB Match"
           value={selectedShowId}
           onChange={setSelectedShowId}
           isLoading={searching}
         >
-          {tmdbResults.map((r) => (
+          {tvdbResults.map((r) => (
             <Form.Dropdown.Item
               key={r.id}
               value={String(r.id)}
@@ -330,7 +330,7 @@ export default function SmartOrganize() {
         </Form.Dropdown>
       )}
 
-      {(!useTmdb || !tmdbAvailable) && (
+      {(!useTvdb || !tvdbAvailable) && (
         <Form.TextField
           id="epsPerSeason"
           title="Episodes per Season"
@@ -363,13 +363,13 @@ export default function SmartOrganize() {
 
       <Form.Description
         title="How It Works"
-        text={`Scans filenames for episode numbers (supports S01E01, 001, EP01, anime formats, etc.), ${tmdbAvailable ? "optionally fetches season data from TMDB, " : ""}then renames and sorts files into season folders.\n\nFiles that can't be parsed are left untouched.`}
+        text={`Scans filenames for episode numbers (supports S01E01, 001, EP01, anime formats, etc.), ${tvdbAvailable ? "optionally fetches season data from TheTVDB, " : ""}then renames and sorts files into season folders.\n\nFiles that can't be parsed are left untouched.`}
       />
 
-      {!tmdbAvailable && (
+      {!tvdbAvailable && (
         <Form.Description
-          title="TMDB Integration"
-          text="Add a TMDB API key in the extension preferences to enable automatic season/episode lookup. Get a free key at themoviedb.org."
+          title="TheTVDB Integration"
+          text="Add a TVDB API key in the extension preferences to enable automatic season/episode lookup. Get a free key at thetvdb.com."
         />
       )}
     </Form>

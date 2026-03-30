@@ -8,8 +8,8 @@
 /* eslint-disable @typescript-eslint/ban-types */
 
 type ExtensionPreferences = {
-  /** TMDB API Key - Optional. Get a free API key at themoviedb.org to enable automatic season/episode lookup for Smart Organize Episodes. */
-  "tmdbApiKey"?: string
+  /** TheTVDB API Key - Optional. Get a free API key at thetvdb.com to enable automatic season/episode lookup for Smart Organize Episodes. */
+  "tvdbApiKey"?: string
 }
 
 /** Preferences accessible in all the extension's commands */
