@@ -149,9 +149,11 @@ Underscores to dashes:   my_vacation_photo.jpg      →  my-vacation-photo.jpg
 Number files sequentially. The sort order controls which file gets which number.
 
 ```
-By name:          photo-a.jpg → 001.jpg, photo-b.jpg → 002.jpg
-By date created:  (oldest file first) → 001.jpg, 002.jpg, 003.jpg
-By file size:     (smallest first) → 001.jpg, 002.jpg, 003.jpg
+By name:           photo-a.jpg → 001.jpg, photo-b.jpg → 002.jpg
+By date created:   (oldest first) → 001.jpg, 002.jpg, 003.jpg
+By date modified:  (most recently changed last) → 001.jpg, 002.jpg, 003.jpg
+By file size:      (smallest first) → 001.jpg, 002.jpg, 003.jpg
+By name length:    (shortest name first) → 001.jpg, 002.jpg, 003.jpg
 ```
 
 | Option | Description | Default |
@@ -499,9 +501,3 @@ If both keys are configured, you can choose which source to use per command run.
 - **Undo:** After any instant command or script, run Undo Last Rename within 5 minutes to revert.
 - **Scripts:** Build reusable rename pipelines with Create Rename Script. Run them from Run Rename Script. Assign an alias to Run Rename Script (e.g. `rs`) for quick access.
 - **File filter:** Use glob patterns to target specific files: `*.mkv`, `*.{mkv,mp4}`, `photo_*`, `*.jpg, *.png` (comma-separated)
-
----
-
-## Known Issues
-
-- **WARP / Corporate Proxies:** Commands that make HTTPS requests (Sort Photos by Location, TMDB, TheTVDB) may fail behind Cloudflare WARP or corporate proxies that inject self-signed certificates. All other commands work fully offline.
