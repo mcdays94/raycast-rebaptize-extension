@@ -2,7 +2,7 @@
   "$schema": "https://www.raycast.com/schemas/extension.json",
   "name": "rebaptize",
   "title": "Rebaptize",
-  "description": "Give your files a new name. Bulk rename using presets for TV shows, anime, movies, sequential numbering, dates, or find & replace",
+  "description": "Give your files a new name. Bulk rename, smart episode organizing, sort by date or GPS location",
   "icon": "icon.png",
   "author": "miguelcaetanodias",
   "categories": [
@@ -17,7 +17,19 @@
     {
       "name": "rebaptize",
       "title": "Rebaptize Files",
-      "description": "Select a folder and bulk rename files using various patterns",
+      "description": "Bulk rename files using presets for TV shows, anime, movies, sequential, date, or find & replace",
+      "mode": "view"
+    },
+    {
+      "name": "smart-organize",
+      "title": "Smart Organize Episodes",
+      "description": "Auto-detect episode numbers and organize into season folders with proper naming",
+      "mode": "view"
+    },
+    {
+      "name": "sort-by-date",
+      "title": "Sort Files by Date",
+      "description": "Organize files into folders by creation date (day, month, or year)",
       "mode": "view"
     },
     {
@@ -25,6 +37,15 @@
       "title": "Sort Photos by Location",
       "description": "Organize photos into folders based on GPS location data from EXIF metadata",
       "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "tmdbApiKey",
+      "title": "TMDB API Key",
+      "description": "Optional. Get a free API key at themoviedb.org to enable automatic season/episode lookup for Smart Organize Episodes.",
+      "type": "password",
+      "required": false
     }
   ],
   "dependencies": {

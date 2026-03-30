@@ -1,14 +1,12 @@
 # Rebaptize
 
-A [Raycast](https://raycast.com) extension for bulk renaming and organizing files.
+A [Raycast](https://raycast.com) extension for bulk renaming, smart episode organizing, and sorting files by date or location.
 
 ## Commands
 
 ### Rebaptize Files
 
-Bulk rename files in a folder using presets for common use-cases. Works with any file type.
-
-**Presets:**
+Bulk rename files in a folder using presets. Works with any file type.
 
 | Preset | Example Output |
 |---|---|
@@ -19,39 +17,60 @@ Bulk rename files in a folder using presets for common use-cases. Works with any
 | Date-Based | `Trip-2026-03-30_14-30-00-001.jpg` |
 | Find & Replace | `My.Old.Name.txt → My.New.Name.txt` |
 
-**Usage:**
+### Smart Organize Episodes
 
-1. Open Raycast and search for **"Rebaptize Files"**
-2. Select a folder
-3. Choose a preset and configure the options
-4. Live preview updates as you type
-5. Submit to see a full preview of all renames
-6. Confirm to apply
+Auto-detect episode numbers from filenames and organize into season folders with proper naming. Designed for bulk-downloaded anime and TV shows.
+
+**Smart detection** parses episode numbers from many formats:
+- `S01E01`, `1x01` — standard TV
+- `[SubsPlease] Show Name - 01 [1080p]` — anime fansub
+- `Episode 01`, `Ep01`, `EP01` — verbose
+- `001.mkv`, `01 - Title.mkv` — bare numbers
+- `Show.Name.E01` — partial
+
+**Season splitting:**
+- If filenames already contain season info (`S01E01`), it's used directly
+- Otherwise, flat episode numbers (1, 2, ... 50) are split by configurable episodes-per-season
+- With a **TMDB API key**, season/episode data is fetched automatically from The Movie Database — no manual config needed
+
+**Customizable templates:**
+- Folder: `Season {season}`, `{show} - Season {season}`, etc.
+- File: `{show}.S{season}E{episode}`, `{show} - {season}x{episode}`, etc.
+
+### Sort Files by Date
+
+Organize files into subfolders by creation date.
+
+| Granularity | Example Folder |
+|---|---|
+| Day | `2026-03-30/` |
+| Month | `2026-03/` |
+| Year | `2026/` |
+
+Choose to move or copy files.
 
 ### Sort Photos by Location
 
-Organize photos into subfolders based on GPS location data embedded in EXIF metadata. Uses OpenStreetMap for reverse geocoding — no API key required.
+Organize photos into subfolders based on GPS data in EXIF metadata. Uses OpenStreetMap for reverse geocoding — no API key required.
 
-**Granularity options:**
-- **City** — e.g. `Lisbon/`, `Tokyo/`, `New York/`
-- **State / Region** — e.g. `California/`, `Bavaria/`
-- **Country** — e.g. `Portugal/`, `Japan/`
+| Granularity | Example Folder |
+|---|---|
+| City | `Lisbon/`, `Tokyo/` |
+| State / Region | `California/`, `Bavaria/` |
+| Country | `Portugal/`, `Japan/` |
 
-**File actions:**
-- **Move** — moves files into location subfolders
-- **Copy** — copies files, keeping originals in place
+Supported formats: JPEG, TIFF, HEIC, DNG, and various RAW formats.
 
-Photos without GPS data are left untouched.
+## TMDB Integration (Optional)
 
-**Supported formats:** JPEG, TIFF, HEIC, DNG, CR2, NEF, ARW, ORF, RW2
+The **Smart Organize Episodes** command can optionally use [TMDB](https://www.themoviedb.org/) to automatically fetch season and episode data for any TV show or anime.
 
-**Usage:**
+To enable:
+1. Get a free API key at [themoviedb.org](https://www.themoviedb.org/settings/api)
+2. Open Raycast Preferences → Extensions → Rebaptize
+3. Paste your API key in the **TMDB API Key** field
 
-1. Open Raycast and search for **"Sort Photos by Location"**
-2. Select a folder of photos
-3. Choose granularity (city, state, or country) and action (move or copy)
-4. Preview the location groups and file counts
-5. Confirm to organize
+Without a key, the extension still works — it just uses manual episodes-per-season splitting.
 
 ## Requirements
 
