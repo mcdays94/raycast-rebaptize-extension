@@ -233,6 +233,15 @@ export default function SmartOrganize() {
       // Determine season/episode mapping
       let episodeMap: Map<number, { season: number; episode: number; name?: string }>;
 
+      if (metadataSource !== "none" && !selectedShowId) {
+        await showToast({
+          style: Toast.Style.Failure,
+          title: "No show selected",
+          message: "Wait for search results to load, then select a show from the dropdown.",
+        });
+        return;
+      }
+
       if (metadataSource !== "none" && selectedShowId) {
         // Use TMDB or TVDB data
         const sourceName = metadataSource === "tmdb" ? "TMDB" : "TheTVDB";
