@@ -11,7 +11,7 @@ import {
   Alert,
   Color,
 } from "@raycast/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   type LocationGranularity,
   type FileAction,
@@ -20,6 +20,7 @@ import {
   groupByLocation,
   organizeByLocation,
 } from "./location";
+import { getFinderFolder } from "./finder";
 
 function PreviewGroups({
   folderPath,
@@ -103,16 +104,23 @@ function PreviewGroups({
 
 export default function SortByLocation() {
   const { push } = useNavigation();
+  const [detectedFolder, setDetectedFolder] = useState<string | null>(null);
   const [granularity, setGranularity] = useState<LocationGranularity>("city");
   const [action, setAction] = useState<FileAction>("move");
 
+  useEffect(() => {
+    (async () => {
+      const folder = await getFinderFolder();
+      if (folder) setDetectedFolder(folder);
+    })();
+  }, []);
+
   async function handleSubmit(values: { folder: string[] }) {
-    const folderPaths = values.folder;
-    if (!folderPaths || folderPaths.length === 0) {
+    const folderPath = values.folder?.[0] || detectedFolder;
+    if (!folderPath) {
       await showToast({ style: Toast.Style.Failure, title: "No folder selected" });
       return;
     }
-    const folderPath = folderPaths[0];
 
     const toast = await showToast({ style: Toast.Style.Animated, title: "Scanning photos for GPS data..." });
 
@@ -177,6 +185,7 @@ export default function SortByLocation() {
         allowMultipleSelection={false}
         canChooseDirectories
         canChooseFiles={false}
+        defaultValue={detectedFolder ? [detectedFolder] : undefined}
       />
 
       <Form.Dropdown

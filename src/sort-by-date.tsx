@@ -11,9 +11,10 @@ import {
   Alert,
   Color,
 } from "@raycast/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { readdir, stat, mkdir, copyFile, rename as fsRename } from "fs/promises";
 import { join } from "path";
+import { getFinderFolder } from "./finder";
 
 type DateGranularity = "day" | "month" | "year";
 type FileAction = "move" | "copy";
@@ -173,16 +174,23 @@ function PreviewGroups({
 
 export default function SortByDate() {
   const { push } = useNavigation();
+  const [detectedFolder, setDetectedFolder] = useState<string | null>(null);
   const [granularity, setGranularity] = useState<DateGranularity>("month");
   const [action, setAction] = useState<FileAction>("move");
 
+  useEffect(() => {
+    (async () => {
+      const folder = await getFinderFolder();
+      if (folder) setDetectedFolder(folder);
+    })();
+  }, []);
+
   async function handleSubmit(values: { folder: string[] }) {
-    const folderPaths = values.folder;
-    if (!folderPaths || folderPaths.length === 0) {
+    const folderPath = values.folder?.[0] || detectedFolder;
+    if (!folderPath) {
       await showToast({ style: Toast.Style.Failure, title: "No folder selected" });
       return;
     }
-    const folderPath = folderPaths[0];
 
     try {
       await showToast({ style: Toast.Style.Animated, title: "Scanning files..." });
@@ -218,6 +226,7 @@ export default function SortByDate() {
         allowMultipleSelection={false}
         canChooseDirectories
         canChooseFiles={false}
+        defaultValue={detectedFolder ? [detectedFolder] : undefined}
       />
 
       <Form.Dropdown

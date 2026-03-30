@@ -11,9 +11,10 @@ import {
   Alert,
   Color,
 } from "@raycast/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { readdir, stat, rename as fsRename } from "fs/promises";
 import { join, extname } from "path";
+import { getFinderFolder } from "./finder";
 
 interface ReplaceRule {
   id: string;
@@ -157,6 +158,14 @@ function newRuleId(): string {
 
 export default function SmartFindReplace() {
   const { push } = useNavigation();
+  const [detectedFolder, setDetectedFolder] = useState<string | null>(null);
+
+  useEffect(() => {
+    (async () => {
+      const folder = await getFinderFolder();
+      if (folder) setDetectedFolder(folder);
+    })();
+  }, []);
 
   const [fileFilter, setFileFilter] = useState("");
   const [includeExtension, setIncludeExtension] = useState(false);
@@ -194,12 +203,11 @@ export default function SmartFindReplace() {
   }
 
   async function handleSubmit(values: { folder: string[] }) {
-    const folderPaths = values.folder;
-    if (!folderPaths || folderPaths.length === 0) {
+    const folderPath = values.folder?.[0] || detectedFolder;
+    if (!folderPath) {
       await showToast({ style: Toast.Style.Failure, title: "No folder selected" });
       return;
     }
-    const folderPath = folderPaths[0];
 
     const rules = buildRules();
     if (rules.length === 0) {
@@ -259,6 +267,7 @@ export default function SmartFindReplace() {
         allowMultipleSelection={false}
         canChooseDirectories
         canChooseFiles={false}
+        defaultValue={detectedFolder ? [detectedFolder] : undefined}
       />
 
       <Form.TextField

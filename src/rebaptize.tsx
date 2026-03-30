@@ -11,10 +11,12 @@ import {
   Alert,
   Color,
 } from "@raycast/api";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { readdir, rename, stat } from "fs/promises";
 import { join } from "path";
 import { type RenameMode, type RenameOptions, type RenamePreview, generatePreviews } from "./rename";
+import { getFinderFolder } from "./finder";
+import { analyzeFolder, type FileAnalysis } from "./file-analyzer";
 
 function isHidden(fileName: string): boolean {
   return fileName.startsWith(".");
@@ -27,9 +29,7 @@ async function getFiles(folderPath: string): Promise<string[]> {
     if (isHidden(entry)) continue;
     const fullPath = join(folderPath, entry);
     const s = await stat(fullPath);
-    if (s.isFile()) {
-      files.push(entry);
-    }
+    if (s.isFile()) files.push(entry);
   }
   return files.sort((a, b) => a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }));
 }
@@ -78,9 +78,7 @@ function PreviewList({ folderPath, previews }: { folderPath: string; previews: R
             subtitle={changed ? `→ ${p.renamed}` : "(unchanged)"}
             actions={
               <ActionPanel>
-                {hasChanges && (
-                  <Action title="Confirm Rename All" icon={Icon.Checkmark} onAction={doRename} />
-                )}
+                {hasChanges && <Action title="Confirm Rename All" icon={Icon.Checkmark} onAction={doRename} />}
               </ActionPanel>
             }
           />
@@ -92,7 +90,12 @@ function PreviewList({ folderPath, previews }: { folderPath: string; previews: R
 
 export default function Rebaptize() {
   const { push } = useNavigation();
-  const [mode, setMode] = useState<RenameMode>("tv-show");
+
+  const [folderPath, setFolderPath] = useState<string | null>(null);
+  const [analysis, setAnalysis] = useState<FileAnalysis | null>(null);
+  const [analyzed, setAnalyzed] = useState(false);
+  const [mode, setMode] = useState<RenameMode>("sequential");
+  const [suggestionNote, setSuggestionNote] = useState("");
 
   // TV show
   const [showName, setShowName] = useState("");
@@ -126,18 +129,95 @@ export default function Rebaptize() {
   const [replace, setReplace] = useState("");
   const [useRegex, setUseRegex] = useState(false);
 
+  // Auto-detect Finder folder on launch
+  useEffect(() => {
+    (async () => {
+      const folder = await getFinderFolder();
+      if (folder) {
+        setFolderPath(folder);
+        await runAnalysis(folder);
+      }
+    })();
+  }, []);
+
+  async function runAnalysis(folder: string) {
+    try {
+      const result = await analyzeFolder(folder);
+      setAnalysis(result);
+      setAnalyzed(true);
+      applySmartDefaults(result);
+    } catch {
+      setAnalyzed(true);
+    }
+  }
+
+  function applySmartDefaults(a: FileAnalysis) {
+    const notes: string[] = [];
+
+    // Set suggested mode
+    if (a.suggestedMode !== "unknown") {
+      setMode(a.suggestedMode);
+      const confidence = Math.round(a.confidence * 100);
+      notes.push(`Detected ${a.suggestedMode.replace("-", " ")} pattern (${confidence}% confidence)`);
+    }
+
+    // Auto-fill based on mode
+    const name = a.detectedShowName || "";
+
+    switch (a.suggestedMode) {
+      case "tv-show":
+        setShowName(name);
+        if (a.detectedSeasons.length > 0) {
+          setSeason(String(a.detectedSeasons[0]));
+        }
+        if (name) notes.push(`Show name: "${name}"`);
+        if (a.detectedSeasons.length > 0) notes.push(`Seasons detected: ${a.detectedSeasons.join(", ")}`);
+        break;
+      case "anime":
+        setAnimeName(name);
+        if (name) notes.push(`Anime name: "${name}"`);
+        break;
+      case "movie":
+        setMovieName(name);
+        if (name) notes.push(`Movie name: "${name}"`);
+        break;
+      case "sequential":
+        if (name) {
+          setPrefix(name.replace(/\s+/g, "-"));
+          notes.push(`Prefix: "${name.replace(/\s+/g, "-")}"`);
+        }
+        break;
+      default:
+        break;
+    }
+
+    notes.push(`${a.totalFiles} files in folder`);
+    if (a.detectedEpisodeCount > 0) {
+      notes.push(`${a.detectedEpisodeCount} episodes detected`);
+    }
+
+    setSuggestionNote(notes.join(" · "));
+  }
+
+  // Re-analyze when folder changes via picker
+  async function onFolderChange(paths: string[]) {
+    if (paths.length > 0 && paths[0] !== folderPath) {
+      setFolderPath(paths[0]);
+      await runAnalysis(paths[0]);
+    }
+  }
+
   async function handleSubmit(values: { folder: string[] }) {
-    const folderPaths = values.folder;
-    if (!folderPaths || folderPaths.length === 0) {
+    const folder = values.folder?.[0] || folderPath;
+    if (!folder) {
       await showToast({ style: Toast.Style.Failure, title: "No folder selected" });
       return;
     }
-    const folderPath = folderPaths[0];
 
     try {
-      const files = await getFiles(folderPath);
+      const files = await getFiles(folder);
       if (files.length === 0) {
-        await showToast({ style: Toast.Style.Failure, title: "No files found", message: "The folder is empty or contains only hidden files." });
+        await showToast({ style: Toast.Style.Failure, title: "No files found" });
         return;
       }
 
@@ -198,9 +278,8 @@ export default function Rebaptize() {
           break;
       }
 
-      const previews = await generatePreviews(folderPath, files, options);
-
-      push(<PreviewList folderPath={folderPath} previews={previews} />);
+      const previews = await generatePreviews(folder, files, options);
+      push(<PreviewList folderPath={folder} previews={previews} />);
     } catch (error) {
       await showToast({
         style: Toast.Style.Failure,
@@ -267,12 +346,16 @@ export default function Rebaptize() {
         </ActionPanel>
       }
     >
+      {suggestionNote && <Form.Description title="Smart Detection" text={suggestionNote} />}
+
       <Form.FilePicker
         id="folder"
         title="Folder"
         allowMultipleSelection={false}
         canChooseDirectories
         canChooseFiles={false}
+        defaultValue={folderPath ? [folderPath] : undefined}
+        onChange={onFolderChange}
       />
 
       <Form.Dropdown id="mode" title="Preset" value={mode} onChange={(v) => setMode(v as RenameMode)}>
@@ -286,7 +369,6 @@ export default function Rebaptize() {
 
       <Form.Separator />
 
-      {/* ── TV Show ── */}
       {mode === "tv-show" && (
         <>
           <Form.TextField id="showName" title="Show Name" placeholder="Breaking Bad" value={showName} onChange={setShowName} />
@@ -296,7 +378,6 @@ export default function Rebaptize() {
         </>
       )}
 
-      {/* ── Anime ── */}
       {mode === "anime" && (
         <>
           <Form.TextField id="animeName" title="Anime Name" placeholder="Jujutsu Kaisen" value={animeName} onChange={setAnimeName} />
@@ -307,7 +388,6 @@ export default function Rebaptize() {
         </>
       )}
 
-      {/* ── Movie ── */}
       {mode === "movie" && (
         <>
           <Form.TextField id="movieName" title="Movie Name" placeholder="Interstellar" value={movieName} onChange={setMovieName} />
@@ -317,7 +397,6 @@ export default function Rebaptize() {
         </>
       )}
 
-      {/* ── Sequential ── */}
       {mode === "sequential" && (
         <>
           <Form.TextField id="prefix" title="Prefix" placeholder="Vacation" value={prefix} onChange={setPrefix} />
@@ -333,7 +412,6 @@ export default function Rebaptize() {
         </>
       )}
 
-      {/* ── Date ── */}
       {mode === "date" && (
         <>
           <Form.Dropdown
@@ -351,7 +429,6 @@ export default function Rebaptize() {
         </>
       )}
 
-      {/* ── Find & Replace ── */}
       {mode === "find-replace" && (
         <>
           <Form.TextField id="find" title="Find" placeholder="old-text" value={find} onChange={setFind} />

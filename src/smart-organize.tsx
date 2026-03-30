@@ -16,6 +16,8 @@ import { readdir, stat, mkdir, rename as fsRename } from "fs/promises";
 import { join, extname } from "path";
 import { parseEpisode, assignSeasons, type ParsedEpisode } from "./episode-parser";
 import { hasTvdbKey, searchShow, buildEpisodeMap, type ShowInfo } from "./tvdb";
+import { getFinderFolder } from "./finder";
+import { analyzeFolder } from "./file-analyzer";
 
 function isHidden(name: string): boolean {
   return name.startsWith(".");
@@ -93,6 +95,8 @@ export default function SmartOrganize() {
   const { push } = useNavigation();
   const tvdbAvailable = hasTvdbKey();
 
+  const [folderPath, setFolderPath] = useState<string | null>(null);
+  const [suggestionNote, setSuggestionNote] = useState("");
   const [showName, setShowName] = useState("");
   const [useTvdb, setUseTvdb] = useState(false);
   const [epsPerSeason, setEpsPerSeason] = useState("12");
@@ -103,6 +107,48 @@ export default function SmartOrganize() {
   const [tvdbResults, setTvdbResults] = useState<ShowInfo[]>([]);
   const [selectedShowId, setSelectedShowId] = useState<string>("");
   const [searching, setSearching] = useState(false);
+
+  // Auto-detect Finder folder on launch
+  useEffect(() => {
+    (async () => {
+      const folder = await getFinderFolder();
+      if (folder) {
+        setFolderPath(folder);
+        await runAnalysis(folder);
+      }
+    })();
+  }, []);
+
+  async function runAnalysis(folder: string) {
+    try {
+      const a = await analyzeFolder(folder);
+      const notes: string[] = [];
+
+      if (a.detectedShowName) {
+        setShowName(a.detectedShowName);
+        notes.push(`Show name: "${a.detectedShowName}"`);
+      }
+      if (a.estimatedEpisodesPerSeason) {
+        setEpsPerSeason(String(a.estimatedEpisodesPerSeason));
+        notes.push(`~${a.estimatedEpisodesPerSeason} eps/season`);
+      }
+      if (a.detectedSeasons.length > 0) {
+        notes.push(`Seasons: ${a.detectedSeasons.join(", ")}`);
+      }
+      notes.push(`${a.detectedEpisodeCount}/${a.totalFiles} episodes detected`);
+
+      setSuggestionNote(notes.join(" · "));
+    } catch {
+      // analysis failed, not critical
+    }
+  }
+
+  async function onFolderChange(paths: string[]) {
+    if (paths.length > 0 && paths[0] !== folderPath) {
+      setFolderPath(paths[0]);
+      await runAnalysis(paths[0]);
+    }
+  }
 
   useEffect(() => {
     if (!useTvdb || !tvdbAvailable || showName.length < 2) {
@@ -128,12 +174,11 @@ export default function SmartOrganize() {
   }, [showName, useTvdb]);
 
   async function handleSubmit(values: { folder: string[] }) {
-    const folderPaths = values.folder;
-    if (!folderPaths || folderPaths.length === 0) {
+    const folder = values.folder?.[0] || folderPath;
+    if (!folder) {
       await showToast({ style: Toast.Style.Failure, title: "No folder selected" });
       return;
     }
-    const folderPath = folderPaths[0];
 
     if (!showName.trim()) {
       await showToast({ style: Toast.Style.Failure, title: "Show name is required" });
@@ -144,11 +189,11 @@ export default function SmartOrganize() {
       await showToast({ style: Toast.Style.Animated, title: "Scanning files..." });
 
       // Read files
-      const entries = await readdir(folderPath);
+      const entries = await readdir(folder);
       const files: string[] = [];
       for (const entry of entries) {
         if (isHidden(entry)) continue;
-        const s = await stat(join(folderPath, entry));
+        const s = await stat(join(folder, entry));
         if (s.isFile()) files.push(entry);
       }
 
@@ -237,7 +282,7 @@ export default function SmartOrganize() {
 
         const ext = extname(p.fileName);
 
-        const folder = folderTemplate
+        const targetFolder = folderTemplate
           .replace("{season}", padNumber(mapping.season, 2))
           .replace("{show}", show);
 
@@ -252,7 +297,7 @@ export default function SmartOrganize() {
           season: mapping.season,
           episodeInSeason: mapping.episode,
           newName,
-          folder,
+          folder: targetFolder,
         });
       }
 
@@ -266,7 +311,7 @@ export default function SmartOrganize() {
         });
       }
 
-      push(<PreviewList folderPath={folderPath} files={organized} />);
+      push(<PreviewList folderPath={folder} files={organized} />);
     } catch (error) {
       await showToast({
         style: Toast.Style.Failure,
@@ -285,12 +330,16 @@ export default function SmartOrganize() {
         </ActionPanel>
       }
     >
+      {suggestionNote && <Form.Description title="Smart Detection" text={suggestionNote} />}
+
       <Form.FilePicker
         id="folder"
         title="Folder"
         allowMultipleSelection={false}
         canChooseDirectories
         canChooseFiles={false}
+        defaultValue={folderPath ? [folderPath] : undefined}
+        onChange={onFolderChange}
       />
 
       <Form.TextField
