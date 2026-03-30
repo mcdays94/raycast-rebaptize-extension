@@ -46,6 +46,7 @@ export interface RenameOptions {
   mode: RenameMode;
   // TV show mode
   showName?: string;
+  overrideSeason?: boolean; // force all files to the specified season/episode, ignoring filename info
   season?: number;
   startEpisode?: number;
   // Anime mode
@@ -297,10 +298,11 @@ export async function generatePreviews(
 
     switch (options.mode) {
       case "tv-show": {
-        // Try to detect season/episode from the existing filename
-        const tvParsed = parseSeasonEpisode(fileName);
-        const tvSeason = tvParsed.season ?? options.season ?? 1;
-        const tvEpisode = tvParsed.episode ?? (options.startEpisode ?? 1) + i;
+        // If override is on, force the specified season and sequential episodes
+        // If off, try to detect season/episode from the existing filename
+        const tvParsed = options.overrideSeason ? null : parseSeasonEpisode(fileName);
+        const tvSeason = tvParsed?.season ?? options.season ?? 1;
+        const tvEpisode = tvParsed?.episode ?? (options.startEpisode ?? 1) + i;
         renamed = generateTvShowName(
           fileName,
           options.showName || "Show",

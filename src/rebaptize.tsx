@@ -105,6 +105,7 @@ export default function Rebaptize({ initialMode }: { initialMode?: RenameMode } 
 
   // TV show
   const [showName, setShowName] = useState("");
+  const [overrideSeason, setOverrideSeason] = useState(false);
   const [season, setSeason] = useState("1");
   const [startEpisode, setStartEpisode] = useState("1");
 
@@ -263,6 +264,7 @@ export default function Rebaptize({ initialMode }: { initialMode?: RenameMode } 
             return;
           }
           options.showName = showName.trim();
+          options.overrideSeason = overrideSeason;
           options.season = parseInt(season) || 1;
           options.startEpisode = parseInt(startEpisode) || 1;
           options.wordDelimiter = effectiveDelimiter();
@@ -469,8 +471,29 @@ export default function Rebaptize({ initialMode }: { initialMode?: RenameMode } 
       {mode === "tv-show" && (
         <>
           <Form.TextField id="showName" title="Show Name" placeholder="Breaking Bad" value={showName} onChange={setShowName} />
-          <Form.TextField id="season" title="Season" placeholder="1" value={season} onChange={setSeason} />
-          <Form.TextField id="startEpisode" title="Start Episode" placeholder="1" value={startEpisode} onChange={setStartEpisode} />
+          <Form.Checkbox
+            id="overrideSeason"
+            label="Override season/episode from filenames"
+            value={overrideSeason}
+            onChange={setOverrideSeason}
+            info="Off: keeps existing S01E01 info from filenames. On: forces all files to the season and start episode below."
+          />
+          <Form.TextField
+            id="season"
+            title={overrideSeason ? "Season" : "Default Season"}
+            placeholder="1"
+            value={season}
+            onChange={setSeason}
+            info={overrideSeason ? "All files will use this season number" : "Only used for files without season info in their name (e.g. 001.mkv)"}
+          />
+          <Form.TextField
+            id="startEpisode"
+            title={overrideSeason ? "Start Episode" : "Default Start Episode"}
+            placeholder="1"
+            value={startEpisode}
+            onChange={setStartEpisode}
+            info={overrideSeason ? "First episode number, incrementing for each file" : "Only used for files without episode info in their name"}
+          />
           <Form.Dropdown id="wordDelimiter" title="Word Separator" value={wordDelimiter} onChange={setWordDelimiter}>
             <Form.Dropdown.Item value=" " title="Space ( )" />
             <Form.Dropdown.Item value="." title="Dot (.)" />
