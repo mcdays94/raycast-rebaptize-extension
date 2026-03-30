@@ -45,7 +45,7 @@ export interface RenameOptions {
   enumStart?: number;
   enumPad?: number;
   enumSeparator?: string;
-  enumSortBy?: "name" | "created" | "modified";
+  enumSortBy?: "name" | "created" | "modified" | "size" | "name-length";
   // Find & Replace mode
   find?: string;
   replace?: string;

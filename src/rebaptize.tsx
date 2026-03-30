@@ -147,7 +147,7 @@ export default function Rebaptize({ initialMode }: { initialMode?: RenameMode } 
   const [enumStart, setEnumStart] = useState("1");
   const [enumPad, setEnumPad] = useState("3");
   const [enumSeparator, setEnumSeparator] = useState("-");
-  const [enumSortBy, setEnumSortBy] = useState<"name" | "created" | "modified">("name");
+  const [enumSortBy, setEnumSortBy] = useState<"name" | "created" | "modified" | "size" | "name-length">("name");
 
   // Find & Replace
   const [find, setFind] = useState("");
@@ -338,18 +338,30 @@ export default function Rebaptize({ initialMode }: { initialMode?: RenameMode } 
           options.enumPad = parseInt(enumPad) || 3;
           options.enumSeparator = enumSeparator;
           options.enumSortBy = enumSortBy;
-          // Sort files by date if needed before generating previews
+          // Sort files before generating previews
           if (enumSortBy !== "name") {
             const fileStats = await Promise.all(
               files.map(async (f) => {
                 const s = await stat(join(folder, f));
-                const date = enumSortBy === "created"
-                  ? (s.birthtime.getTime() > 0 ? s.birthtime : s.mtime)
-                  : s.mtime;
-                return { name: f, date };
+                return { name: f, stat: s };
               }),
             );
-            fileStats.sort((a, b) => a.date.getTime() - b.date.getTime());
+            switch (enumSortBy) {
+              case "created":
+                fileStats.sort((a, b) =>
+                  (a.stat.birthtime.getTime() > 0 ? a.stat.birthtime.getTime() : a.stat.mtime.getTime()) -
+                  (b.stat.birthtime.getTime() > 0 ? b.stat.birthtime.getTime() : b.stat.mtime.getTime()));
+                break;
+              case "modified":
+                fileStats.sort((a, b) => a.stat.mtime.getTime() - b.stat.mtime.getTime());
+                break;
+              case "size":
+                fileStats.sort((a, b) => a.stat.size - b.stat.size);
+                break;
+              case "name-length":
+                fileStats.sort((a, b) => a.name.length - b.name.length);
+                break;
+            }
             files = fileStats.map((f) => f.name);
           }
           break;
@@ -587,9 +599,11 @@ export default function Rebaptize({ initialMode }: { initialMode?: RenameMode } 
             <Form.Dropdown.Item value=" " title="Space" />
           </Form.Dropdown>
           <Form.Dropdown id="enumSortBy" title="Sort Files By" value={enumSortBy} onChange={(v) => setEnumSortBy(v as typeof enumSortBy)}>
-            <Form.Dropdown.Item value="name" title="File Name" icon={Icon.Text} />
-            <Form.Dropdown.Item value="created" title="Date Created" icon={Icon.Calendar} />
-            <Form.Dropdown.Item value="modified" title="Date Modified" icon={Icon.Clock} />
+            <Form.Dropdown.Item value="name" title="File Name (A-Z)" icon={Icon.Text} />
+            <Form.Dropdown.Item value="created" title="Date Created (oldest first)" icon={Icon.Calendar} />
+            <Form.Dropdown.Item value="modified" title="Date Modified (oldest first)" icon={Icon.Clock} />
+            <Form.Dropdown.Item value="size" title="File Size (smallest first)" icon={Icon.HardDrive} />
+            <Form.Dropdown.Item value="name-length" title="Name Length (shortest first)" icon={Icon.BarChart} />
           </Form.Dropdown>
           <Form.Description
             title="Preview"
