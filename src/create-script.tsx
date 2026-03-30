@@ -227,7 +227,7 @@ function AddStepForm({ onAdd }: { onAdd: (step: ScriptStep) => void }) {
 // ─── Main Create Script Command ───
 
 export default function CreateScript() {
-  const { push } = useNavigation();
+  const { push, pop } = useNavigation();
   const [scriptName, setScriptName] = useState("");
   const [description, setDescription] = useState("");
   const [fileFilter, setFileFilter] = useState("");
@@ -365,7 +365,7 @@ export default function CreateScript() {
                               setScriptName(values.name);
                               setDescription(values.desc);
                               setFileFilter(values.filter);
-                              push(<CreateScript />); // re-render is handled by state
+                              pop();
                             }}
                           />
                         </ActionPanel>
