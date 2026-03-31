@@ -174,8 +174,8 @@ function StepForm({ onSubmit, existing }: { onSubmit: (step: ScriptStep) => void
       {stepType === "tv-show" && (
         <>
           <Form.TextField id="showName" title="Show Name" placeholder="Breaking Bad" value={showName} onChange={setShowName} />
-          <Form.TextField id="season" title="Season" placeholder="1" value={season} onChange={setSeason} />
-          <Form.TextField id="startEp" title="Start Episode" placeholder="1" value={startEp} onChange={setStartEp} />
+          <Form.TextField id="season" title="Default Season" placeholder="1" value={season} onChange={setSeason} info="Used for files without season info in their name. Files with existing SxxExx are preserved." />
+          <Form.TextField id="startEp" title="Default Start Episode" placeholder="1" value={startEp} onChange={setStartEp} info="Used for files without episode info in their name." />
           <Form.Dropdown id="wordDel" title="Word Separator" value={wordDel} onChange={setWordDel}>
             <Form.Dropdown.Item value=" " title="Space" />
             <Form.Dropdown.Item value="." title="Dot" />

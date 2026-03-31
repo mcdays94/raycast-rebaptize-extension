@@ -32,8 +32,9 @@ Breaking.Bad.S01E03.HDTV.XviD-LOL.avi            Breaking Bad S01E03.avi
 | Option | Description | Default |
 |---|---|---|
 | Show Name | Name of the show (required) | Auto-detected from filenames |
-| Season | Season number | `1` (auto-detected if files contain `SxxExx`) |
-| Start Episode | First episode number | `1` |
+| Override season/episode | When off, preserves existing `S01E01` info from filenames. When on, forces all files to the season and start episode below. | Off |
+| Season / Default Season | Season number. When override is off, only used for files without season info. | `1` |
+| Start Episode / Default Start Episode | First episode number. When override is off, only used for files without episode info. | `1` |
 | Word Separator | Space, Dot, Underscore, Dash, or Custom | Space |
 | Custom Separator | Any string (shown when Custom is selected) | — |
 | Suffix | Text added after `S01E01` (e.g. `1080p`, `PROPER`) | — |
@@ -228,16 +229,31 @@ The episode parser recognizes 9 different formats:
 |---|---|---|
 | Show / Anime Name | Name used in output filenames (required) | Auto-detected from filenames or folder name |
 | Metadata Source | Manual, TMDB (free), or TheTVDB ($12/year) | Manual |
-| Episodes per Season | For splitting flat episode numbers into seasons (Manual mode only) | `12` |
+| Season Episodes | Per-season episode counts (Manual mode only). Press `Cmd+N` to add seasons, `Cmd+Delete` to remove. | Season 1: 12 |
+| Start season at 00 | When enabled, first season is numbered 00 instead of 01 | Off |
 | Folder Template | Output folder name pattern | `Season {season}` |
 | File Template | Output filename pattern (extension added automatically) | `{show}.S{season}E{episode}` |
 
 **Template variables:** `{show}`, `{season}` (zero-padded), `{episode}` (zero-padded)
 
+### Season Configuration (Manual Mode)
+
+In manual mode, each season has its own episode count field. Not all shows have the same number of episodes per season — for example Breaking Bad has 7, 13, 13, 13, and 16 episodes across its 5 seasons.
+
+```
+Season 1 Episodes: [7 ]
+Season 2 Episodes: [13]
+Season 3 Episodes: [13]
+Season 4 Episodes: [13]
+Season 5 Episodes: [16]
+```
+
+Press `Cmd+N` to add a season, `Cmd+Delete` to remove the last one. When a TMDB or TheTVDB key is configured, these fields are replaced by automatic lookup.
+
 ### Season Detection
 
 - If filenames already contain season info (`S01E01`, `1x01`), those season numbers are used directly
-- Otherwise, flat episode numbers (1, 2, ... 50) are split by the episodes-per-season setting
+- Otherwise, flat episode numbers (1, 2, ... 50) are split according to the per-season episode counts
 - With TMDB or TheTVDB, the real season/episode breakdown is fetched automatically
 - If the API fetch fails, it falls back to manual splitting
 - Files that can't be parsed are skipped and left untouched
@@ -438,7 +454,9 @@ Both enumerate commands use 3-digit zero-padded numbers. Enumerate by Date uses 
 
 | Command | Description |
 |---|---|
-| Undo Last Rename | Reverts the last instant command or script execution. Available within 5 minutes. Single use — cannot undo twice. |
+| Undo Last Rename | Reverts the last rename or organize operation. Available within 5 minutes. Single use — cannot undo twice. |
+
+Every command in Rebaptize saves undo state — including Rename Files, Smart Organize Episodes, Smart Find & Replace, Sort Files by Date, Sort Photos by Location, Run Rename Script, and all instant commands. For organize commands that move files into subfolders, undo moves them back and cleans up the empty folders.
 
 ---
 
@@ -498,6 +516,6 @@ If both keys are configured, you can choose which source to use per command run.
 - **Aliases:** Search any command → `Cmd + K` → Configure Command → set an alias (e.g. `tv` for Rename as TV Show, `undo` for Undo Last Rename)
 - **Hotkeys:** Same menu — assign a global keyboard shortcut to any command
 - **Finder:** All commands auto-detect the current Finder folder. Navigate to the right folder before invoking.
-- **Undo:** After any instant command or script, run Undo Last Rename within 5 minutes to revert.
+- **Undo:** Every rename and organize command is undoable. Run Undo Last Rename within 5 minutes to revert.
 - **Scripts:** Build reusable rename pipelines with Create Rename Script. Run them from Run Rename Script. Assign an alias to Run Rename Script (e.g. `rs`) for quick access.
 - **File filter:** Use glob patterns to target specific files: `*.mkv`, `*.{mkv,mp4}`, `photo_*`, `*.jpg, *.png` (comma-separated)
