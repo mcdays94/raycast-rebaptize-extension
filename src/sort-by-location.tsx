@@ -21,6 +21,7 @@ import {
   organizeByLocation,
 } from "./location";
 import { getFinderFolder } from "./finder";
+import { saveUndoState } from "./instant-runner";
 
 function PreviewGroups({
   folderPath,
@@ -43,17 +44,17 @@ function PreviewGroups({
 
     const confirmed = await confirmAlert({
       title: `${actionVerb} ${fileCount} files into ${groupsToOrganize.length} folders?`,
-      message: action === "move" ? "Files will be moved. This cannot be undone." : "Files will be copied into subfolders.",
-      primaryAction: {
-        title: actionVerb,
-        style: action === "move" ? Alert.ActionStyle.Destructive : Alert.ActionStyle.Default,
-      },
+      message: action === "move" ? "You can undo this with the 'Undo Last Rename' command." : "Files will be copied into subfolders.",
+      primaryAction: { title: actionVerb },
     });
     if (!confirmed) return;
 
     try {
       await showToast({ style: Toast.Style.Animated, title: `${actionVerb.replace(/e$/, "")}ing files...` });
-      const count = await organizeByLocation(folderPath, groupsToOrganize, action);
+      const { count, changes } = await organizeByLocation(folderPath, groupsToOrganize, action);
+      if (changes.length > 0) {
+        await saveUndoState({ folderPath, changes, actionName: "Sort Photos by Location", timestamp: Date.now() });
+      }
       await showToast({ style: Toast.Style.Success, title: "Done!", message: `${count} files organized` });
     } catch (error) {
       await showToast({

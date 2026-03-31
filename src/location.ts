@@ -248,11 +248,11 @@ export async function organizeByLocation(
   folderPath: string,
   groups: LocationGroup[],
   action: FileAction,
-): Promise<number> {
+): Promise<{ count: number; changes: { original: string; renamed: string }[] }> {
   let count = 0;
+  const changes: { original: string; renamed: string }[] = [];
 
   for (const group of groups) {
-    // Sanitize folder name
     const safeName = group.location.replace(/[/\\:*?"<>|]/g, "_").trim();
     const targetDir = join(folderPath, safeName);
 
@@ -266,10 +266,11 @@ export async function organizeByLocation(
         await copyFile(src, dest);
       } else {
         await fsRename(src, dest);
+        changes.push({ original: fileName, renamed: join(safeName, fileName) });
       }
       count++;
     }
   }
 
-  return count;
+  return { count, changes };
 }

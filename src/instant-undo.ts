@@ -1,6 +1,6 @@
 import { showHUD } from "@raycast/api";
-import { readFile, unlink, rename as fsRename } from "fs/promises";
-import { join } from "path";
+import { readFile, unlink, rename as fsRename, rmdir, readdir } from "fs/promises";
+import { join, dirname } from "path";
 import { UNDO_PATH } from "./instant-runner";
 
 interface UndoState {
@@ -23,8 +23,25 @@ export default async function () {
     }
 
     // Reverse renames (in reverse order to avoid conflicts)
+    const dirsToClean = new Set<string>();
     for (const r of [...state.changes].reverse()) {
-      await fsRename(join(state.folderPath, r.renamed), join(state.folderPath, r.original));
+      const renamedPath = join(state.folderPath, r.renamed);
+      await fsRename(renamedPath, join(state.folderPath, r.original));
+      // Track subdirectories that may now be empty
+      const subdir = dirname(renamedPath);
+      if (subdir !== state.folderPath) {
+        dirsToClean.add(subdir);
+      }
+    }
+
+    // Clean up empty subdirectories created by organize commands
+    for (const dir of dirsToClean) {
+      try {
+        const entries = await readdir(dir);
+        if (entries.length === 0) await rmdir(dir);
+      } catch {
+        // directory might already be gone or not empty
+      }
     }
 
     // Delete undo state so it can't be applied twice

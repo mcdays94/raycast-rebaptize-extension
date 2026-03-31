@@ -19,6 +19,7 @@ import { hasTvdbKey, searchShow as tvdbSearch, buildEpisodeMap as tvdbBuildMap, 
 import { hasTmdbKey, searchShow as tmdbSearch, buildEpisodeMap as tmdbBuildMap, type ShowInfo as TmdbShowInfo } from "./tmdb";
 import { getFinderFolder } from "./finder";
 import { analyzeFolder } from "./file-analyzer";
+import { saveUndoState } from "./instant-runner";
 
 type ShowInfo = TvdbShowInfo | TmdbShowInfo;
 type MetadataSource = "none" | "tmdb" | "tvdb";
@@ -45,19 +46,29 @@ function PreviewList({ folderPath, files }: { folderPath: string; files: Organiz
   async function doOrganize() {
     const confirmed = await confirmAlert({
       title: `Rename and sort ${files.length} files into ${seasons.length} season folders?`,
-      message: "Files will be renamed and moved. This cannot be undone.",
-      primaryAction: { title: "Organize", style: Alert.ActionStyle.Destructive },
+      message: "You can undo this with the 'Undo Last Rename' command.",
+      primaryAction: { title: "Organize" },
     });
     if (!confirmed) return;
 
     try {
       await showToast({ style: Toast.Style.Animated, title: "Organizing..." });
 
+      const changes: { original: string; renamed: string }[] = [];
       for (const f of files) {
         const targetDir = join(folderPath, f.folder);
         await mkdir(targetDir, { recursive: true });
         await fsRename(join(folderPath, f.original), join(targetDir, f.newName));
+        // Store relative paths for undo: original was in root, now in subfolder
+        changes.push({ original: f.original, renamed: join(f.folder, f.newName) });
       }
+
+      await saveUndoState({
+        folderPath,
+        changes,
+        actionName: "Smart Organize Episodes",
+        timestamp: Date.now(),
+      });
 
       await showToast({ style: Toast.Style.Success, title: "Done!", message: `${files.length} episodes organized` });
     } catch (error) {

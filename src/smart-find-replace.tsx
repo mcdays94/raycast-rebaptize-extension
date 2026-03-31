@@ -15,6 +15,7 @@ import { useState, useEffect } from "react";
 import { readdir, stat, rename as fsRename } from "fs/promises";
 import { join, extname } from "path";
 import { getFinderFolder } from "./finder";
+import { saveUndoState } from "./instant-runner";
 
 interface ReplaceRule {
   id: string;
@@ -102,20 +103,21 @@ function PreviewList({ folderPath, previews }: { folderPath: string; previews: R
   async function doRename() {
     const confirmed = await confirmAlert({
       title: `Rename ${changedCount} files?`,
-      message: "This cannot be undone.",
-      primaryAction: { title: "Rename", style: Alert.ActionStyle.Destructive },
+      message: "You can undo this with the 'Undo Last Rename' command.",
+      primaryAction: { title: "Rename" },
     });
     if (!confirmed) return;
 
     try {
       await showToast({ style: Toast.Style.Animated, title: "Renaming files..." });
-      let count = 0;
+      const changes: { original: string; renamed: string }[] = [];
       for (const p of previews) {
         if (!p.changed) continue;
         await fsRename(join(folderPath, p.original), join(folderPath, p.renamed));
-        count++;
+        changes.push({ original: p.original, renamed: p.renamed });
       }
-      await showToast({ style: Toast.Style.Success, title: "Done!", message: `${count} files renamed` });
+      await saveUndoState({ folderPath, changes, actionName: "Smart Find & Replace", timestamp: Date.now() });
+      await showToast({ style: Toast.Style.Success, title: "Done!", message: `${changes.length} files renamed` });
     } catch (error) {
       await showToast({
         style: Toast.Style.Failure,

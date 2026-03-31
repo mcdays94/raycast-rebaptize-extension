@@ -15,6 +15,7 @@ import { useState, useEffect } from "react";
 import { readdir, stat, mkdir, copyFile, rename as fsRename } from "fs/promises";
 import { join } from "path";
 import { getFinderFolder } from "./finder";
+import { saveUndoState } from "./instant-runner";
 
 type DateGranularity = "day" | "month" | "year";
 type FileAction = "move" | "copy";
@@ -89,11 +90,11 @@ async function organizeByDate(
   groups: DateGroup[],
   granularity: DateGranularity,
   action: FileAction,
-): Promise<number> {
+): Promise<{ count: number; changes: { original: string; renamed: string }[] }> {
   let count = 0;
+  const changes: { original: string; renamed: string }[] = [];
 
   for (const group of groups) {
-    // Use the label as folder name (already formatted correctly)
     const safeName = group.label.replace(/[/\\:*?"<>|]/g, "_").trim();
     const targetDir = join(folderPath, safeName);
     await mkdir(targetDir, { recursive: true });
@@ -105,11 +106,12 @@ async function organizeByDate(
         await copyFile(src, dest);
       } else {
         await fsRename(src, dest);
+        changes.push({ original: fileName, renamed: join(safeName, fileName) });
       }
       count++;
     }
   }
-  return count;
+  return { count, changes };
 }
 
 function PreviewGroups({
@@ -129,17 +131,17 @@ function PreviewGroups({
   async function doOrganize() {
     const confirmed = await confirmAlert({
       title: `${actionVerb} ${totalFiles} files into ${groups.length} folders?`,
-      message: action === "move" ? "Files will be moved. This cannot be undone." : "Files will be copied into subfolders.",
-      primaryAction: {
-        title: actionVerb,
-        style: action === "move" ? Alert.ActionStyle.Destructive : Alert.ActionStyle.Default,
-      },
+      message: action === "move" ? "You can undo this with the 'Undo Last Rename' command." : "Files will be copied into subfolders.",
+      primaryAction: { title: actionVerb },
     });
     if (!confirmed) return;
 
     try {
       await showToast({ style: Toast.Style.Animated, title: `${actionVerb.replace(/e$/, "")}ing files...` });
-      const count = await organizeByDate(folderPath, groups, granularity, action);
+      const { count, changes } = await organizeByDate(folderPath, groups, granularity, action);
+      if (changes.length > 0) {
+        await saveUndoState({ folderPath, changes, actionName: "Sort Files by Date", timestamp: Date.now() });
+      }
       await showToast({ style: Toast.Style.Success, title: "Done!", message: `${count} files organized` });
     } catch (error) {
       await showToast({

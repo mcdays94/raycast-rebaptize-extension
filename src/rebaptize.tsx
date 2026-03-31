@@ -16,6 +16,7 @@ import { readdir, rename, stat } from "fs/promises";
 import { join } from "path";
 import { type RenameMode, type RenameOptions, type RenamePreview, generatePreviews } from "./rename";
 import { getFinderFolder } from "./finder";
+import { saveUndoState } from "./instant-runner";
 import { analyzeFolder, type FileAnalysis } from "./file-analyzer";
 
 function isHidden(fileName: string): boolean {
@@ -40,20 +41,21 @@ function PreviewList({ folderPath, previews }: { folderPath: string; previews: R
   async function doRename() {
     const confirmed = await confirmAlert({
       title: `Rename ${previews.length} files?`,
-      message: "This cannot be undone.",
-      primaryAction: { title: "Rename", style: Alert.ActionStyle.Destructive },
+      message: "You can undo this with the 'Undo Last Rename' command.",
+      primaryAction: { title: "Rename" },
     });
     if (!confirmed) return;
 
     try {
       await showToast({ style: Toast.Style.Animated, title: "Renaming files..." });
-      let count = 0;
+      const changes: { original: string; renamed: string }[] = [];
       for (const p of previews) {
         if (p.original === p.renamed) continue;
         await rename(join(folderPath, p.original), join(folderPath, p.renamed));
-        count++;
+        changes.push({ original: p.original, renamed: p.renamed });
       }
-      await showToast({ style: Toast.Style.Success, title: "Done!", message: `Renamed ${count} files` });
+      await saveUndoState({ folderPath, changes, actionName: "Rename Files", timestamp: Date.now() });
+      await showToast({ style: Toast.Style.Success, title: "Done!", message: `Renamed ${changes.length} files` });
     } catch (error) {
       await showToast({
         style: Toast.Style.Failure,

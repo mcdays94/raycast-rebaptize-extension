@@ -45,8 +45,8 @@ function PreviewAndRun({
   async function doRename() {
     const confirmed = await confirmAlert({
       title: `Run "${script.name}" on ${changed.length} files?`,
-      message: "This will rename the files. You can undo with 'Undo Last Rename'.",
-      primaryAction: { title: "Rename", style: Alert.ActionStyle.Destructive },
+      message: "You can undo this with the 'Undo Last Rename' command.",
+      primaryAction: { title: "Rename" },
     });
     if (!confirmed) return;
 
