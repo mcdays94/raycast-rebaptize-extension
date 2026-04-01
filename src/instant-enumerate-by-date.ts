@@ -16,10 +16,14 @@ export default async function () {
     );
     withDates.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    const results = withDates.map((f, i) => ({
-      original: f.name,
-      renamed: `${String(i + 1).padStart(3, "0")}${extname(f.name)}`,
-    }));
+    const results = withDates.map((f, i) => {
+      const ext = extname(f.name);
+      const name = f.name.slice(0, f.name.length - ext.length);
+      return {
+        original: f.name,
+        renamed: `${String(i + 1).padStart(3, "0")}-${name}${ext}`,
+      };
+    });
 
     const changed = results.filter((r) => r.original !== r.renamed);
     if (changed.length === 0) {
