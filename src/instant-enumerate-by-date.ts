@@ -21,7 +21,7 @@ export default async function () {
       const name = f.name.slice(0, f.name.length - ext.length);
       return {
         original: f.name,
-        renamed: `${String(i + 1).padStart(3, "0")}-${name}${ext}`,
+        renamed: `${i + 1} - ${name}${ext}`,
       };
     });
 

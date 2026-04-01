@@ -12,7 +12,7 @@ export default async function () {
       const name = f.slice(0, f.length - ext.length);
       return {
         original: f,
-        renamed: `${String(i + 1).padStart(3, "0")}-${name}${ext}`,
+        renamed: `${i + 1} - ${name}${ext}`,
       };
     });
 
