@@ -7,10 +7,22 @@ import {
   generateTvShowName,
   generateAnimeName,
   generateMovieName,
-  generateSequentialName,
   generateFindReplaceName,
   generateChangedExtension,
   generateEnumerateName,
+  generateTemplateEnumerateName,
+  removeAccents,
+  stripDigits,
+  stripSpecialChars,
+  trimFilename,
+  padNumbersInName,
+  unpadNumbersInName,
+  prependParentFolder,
+  swapParts,
+  transliterate,
+  insertAtPosition,
+  removeAtPosition,
+  type EnumCounter,
 } from "./rename";
 import { parseEpisode } from "./episode-parser";
 
@@ -28,8 +40,18 @@ export type StepType =
   | "tv-show"
   | "anime"
   | "movie"
-  | "sequential"
-  | "enumerate";
+  | "enumerate"
+  | "remove-accents"
+  | "strip-digits"
+  | "strip-special"
+  | "trim"
+  | "pad-numbers"
+  | "unpad-numbers"
+  | "parent-folder"
+  | "swap-parts"
+  | "transliterate"
+  | "insert-at-position"
+  | "remove-at-position";
 
 export interface ScriptStep {
   type: StepType;
@@ -63,6 +85,26 @@ export interface ScriptStep {
   startNumber?: number;
   zeroPad?: number;
   separator?: string;
+  // Enumerate extras
+  keepName?: boolean;
+  position?: "before" | "after";
+  format?: "numeric" | "alpha" | "alpha-upper";
+  enumSuffix?: string;
+  // Custom template enumerate
+  customTemplate?: boolean;
+  template?: string;
+  counters?: EnumCounter[];
+  // Insert/remove at position
+  insertText?: string;
+  positionIndex?: number;
+  positionFromEnd?: boolean;
+  removeCount?: number;
+  // Swap parts
+  swapSeparator?: string;
+  // Pad numbers
+  padWidth?: number;
+  // Parent folder separator
+  parentSeparator?: string;
 }
 
 export interface RenameScript {
@@ -191,22 +233,43 @@ function applyStep(fileName: string, step: ScriptStep, index: number): string {
         step.movieQuality ?? "",
         step.wordDelimiter ?? " ",
       );
-    case "sequential":
-      return generateSequentialName(
-        fileName,
-        step.prefix ?? "file",
-        (step.startNumber ?? 1) + index,
-        step.zeroPad ?? 3,
-        step.separator ?? "-",
-      );
     case "enumerate":
+      if (step.customTemplate && step.template && step.counters?.length) {
+        return generateTemplateEnumerateName(fileName, step.template, index, step.counters);
+      }
       return generateEnumerateName(
         fileName,
         step.prefix ?? "",
         (step.startNumber ?? 1) + index,
         step.zeroPad ?? 3,
         step.separator ?? "-",
+        step.keepName ?? true,
+        step.position ?? "before",
+        step.format ?? "numeric",
+        step.enumSuffix ?? "",
       );
+    case "remove-accents":
+      return removeAccents(fileName);
+    case "strip-digits":
+      return stripDigits(fileName);
+    case "strip-special":
+      return stripSpecialChars(fileName);
+    case "trim":
+      return trimFilename(fileName);
+    case "pad-numbers":
+      return padNumbersInName(fileName, step.padWidth ?? 3);
+    case "unpad-numbers":
+      return unpadNumbersInName(fileName);
+    case "parent-folder":
+      return prependParentFolder(fileName, step.prefix ?? "Folder", step.parentSeparator ?? " - ");
+    case "swap-parts":
+      return swapParts(fileName, step.swapSeparator ?? " - ");
+    case "transliterate":
+      return transliterate(fileName);
+    case "insert-at-position":
+      return insertAtPosition(fileName, step.insertText ?? "", step.positionIndex ?? 0, step.positionFromEnd ?? false);
+    case "remove-at-position":
+      return removeAtPosition(fileName, step.positionIndex ?? 0, step.removeCount ?? 1, step.positionFromEnd ?? false);
     default:
       return fileName;
   }
@@ -268,10 +331,33 @@ export function stepLabel(step: ScriptStep): string {
       return `Anime: ${step.animeName}`;
     case "movie":
       return `Movie: ${step.movieName}`;
-    case "sequential":
-      return `Sequential: ${step.prefix}-###`;
     case "enumerate":
+      if (step.customTemplate && step.template) {
+        return `Enumerate: ${step.template}`;
+      }
       return `Enumerate: ${step.prefix ? step.prefix + "-" : ""}###`;
+    case "remove-accents":
+      return "Remove accents";
+    case "strip-digits":
+      return "Strip digits";
+    case "strip-special":
+      return "Strip special characters";
+    case "trim":
+      return "Trim filename";
+    case "pad-numbers":
+      return `Pad numbers (${step.padWidth ?? 3} digits)`;
+    case "unpad-numbers":
+      return "Remove number padding";
+    case "parent-folder":
+      return `Prepend folder name`;
+    case "swap-parts":
+      return `Swap parts around "${step.swapSeparator ?? " - "}"`;
+    case "transliterate":
+      return "Transliterate to Latin";
+    case "insert-at-position":
+      return `Insert "${step.insertText}" at ${step.positionFromEnd ? "end-" : ""}${step.positionIndex ?? 0}`;
+    case "remove-at-position":
+      return `Remove ${step.removeCount ?? 1} chars at ${step.positionFromEnd ? "end-" : ""}${step.positionIndex ?? 0}`;
     default:
       return step.type;
   }
@@ -290,8 +376,18 @@ export function stepTypeLabel(type: StepType): string {
     "tv-show": "Rename as TV Show",
     anime: "Rename as Anime",
     movie: "Rename as Movie",
-    sequential: "Rename Sequentially",
     enumerate: "Auto Enumerate",
+    "remove-accents": "Remove Accents",
+    "strip-digits": "Strip Digits",
+    "strip-special": "Strip Special Characters",
+    trim: "Trim Filename",
+    "pad-numbers": "Add Zero Padding",
+    "unpad-numbers": "Remove Zero Padding",
+    "parent-folder": "Prepend Parent Folder",
+    "swap-parts": "Swap Parts",
+    transliterate: "Transliterate to Latin",
+    "insert-at-position": "Insert at Position",
+    "remove-at-position": "Remove at Position",
   };
   return labels[type] || type;
 }

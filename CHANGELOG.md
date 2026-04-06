@@ -1,5 +1,45 @@
 # Rebaptize Changelog
 
+## [New Commands and Features] - {PR_MERGE_DATE}
+
+### Changes
+
+- Remove Sequential preset (replaced by Auto Enumerate which covers all its functionality)
+- Remove Smart Detection auto-suggest from Rename Files (form now defaults to Find & Replace)
+- Rename Files defaults to Find & Replace preset
+
+### New Commands
+
+- **Rename Photos by EXIF** — rename photos using date taken, camera model, ISO, focal length (template-based)
+- **Rename from CSV** — bulk rename files using a mapping of old names to new names
+- **Remove Accents from Filenames** — strip diacritics: café → cafe, über → uber
+- **Strip Digits from Filenames** — remove all numbers from filenames
+- **Strip Special Characters** — remove brackets, symbols, and special chars
+- **Trim Filenames** — remove leading/trailing spaces, dashes, dots, underscores
+- **Add Zero Padding to Numbers** — file1 → file001
+- **Remove Zero Padding from Numbers** — file001 → file1
+- **Prepend Parent Folder Name** — NYC/img.jpg → NYC - img.jpg
+- **Swap Filename Parts** — swap around " - " separator: Artist - Song → Song - Artist
+- **Transliterate to Latin** — convert Cyrillic, accented, and non-Latin characters to ASCII
+
+### New Script Step Types
+
+- All 11 new operations available as step types in Create Rename Script
+- Insert at Position and Remove at Position steps for precise character manipulation
+
+## [Enhanced Enumerate] - {PR_MERGE_DATE}
+
+- Enumerate now preserves original filenames by default (e.g. `001-apple.txt` instead of `001.txt`)
+- Add number format options: numeric with zero padding, uppercase alphabetic (A, B, C), lowercase alphabetic (a, b, c)
+- Add number position option: before or after the original filename
+- Add optional prefix and suffix fields
+- Start number and zero padding are only shown for numeric format
+- Instant enumerate commands (by name and by date) now also preserve original filenames
+- Add Custom Template mode with up to 3 independent counters for advanced enumeration patterns
+- Each counter has its own format (numeric/alphabetic), start value, zero padding, and increment frequency
+- Template uses `{1}`, `{2}`, `{3}` for counters and `{name}` for the original filename
+- Live preview shows first 3 resulting filenames in Custom Template mode
+
 ## [TMDB Support and Metadata Sources] - {PR_MERGE_DATE}
 
 - Add TMDB (The Movie Database) as a free metadata source for Smart Organize Episodes

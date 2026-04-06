@@ -10,6 +10,7 @@ import {
   stepLabel,
   stepTypeLabel,
 } from "./scripts";
+import { type EnumCounter, formatIndex } from "./rename";
 import { getFinderFolder } from "./finder";
 import { readdir, stat } from "fs/promises";
 import { join } from "path";
@@ -51,6 +52,41 @@ function StepForm({ onSubmit, existing }: { onSubmit: (step: ScriptStep) => void
   const [startNum, setStartNum] = useState(String(existing?.startNumber ?? 1));
   const [zeroPad, setZeroPad] = useState(String(existing?.zeroPad ?? 3));
   const [separator, setSeparator] = useState(existing?.separator ?? "-");
+  const [keepName, setKeepName] = useState(existing?.keepName ?? true);
+  const [position, setPosition] = useState<"before" | "after">(existing?.position ?? "before");
+  const [enumFormat, setEnumFormat] = useState<"numeric" | "alpha" | "alpha-upper">(existing?.format ?? "numeric");
+  const [enumSuffix, setEnumSuffix] = useState(existing?.enumSuffix ?? "");
+  // Custom template enumerate
+  const [customTemplate, setCustomTemplate] = useState(existing?.customTemplate ?? false);
+  const [template, setTemplate] = useState(existing?.template ?? "{1} - {name}");
+  const [c1Format, setC1Format] = useState<"numeric" | "alpha" | "alpha-upper">(
+    existing?.counters?.[0]?.format ?? "numeric",
+  );
+  const [c1Start, setC1Start] = useState(String(existing?.counters?.[0]?.start ?? 1));
+  const [c1Pad, setC1Pad] = useState(String(existing?.counters?.[0]?.pad ?? 0));
+  const [c1Every, setC1Every] = useState(String(existing?.counters?.[0]?.every ?? 1));
+  const [c2Enabled, setC2Enabled] = useState((existing?.counters?.length ?? 0) >= 2);
+  const [c2Format, setC2Format] = useState<"numeric" | "alpha" | "alpha-upper">(
+    existing?.counters?.[1]?.format ?? "numeric",
+  );
+  const [c2Start, setC2Start] = useState(String(existing?.counters?.[1]?.start ?? 1));
+  const [c2Pad, setC2Pad] = useState(String(existing?.counters?.[1]?.pad ?? 0));
+  const [c2Every, setC2Every] = useState(String(existing?.counters?.[1]?.every ?? 10));
+  const [c3Enabled, setC3Enabled] = useState((existing?.counters?.length ?? 0) >= 3);
+  const [c3Format, setC3Format] = useState<"numeric" | "alpha" | "alpha-upper">(
+    existing?.counters?.[2]?.format ?? "numeric",
+  );
+  const [c3Start, setC3Start] = useState(String(existing?.counters?.[2]?.start ?? 1));
+  const [c3Pad, setC3Pad] = useState(String(existing?.counters?.[2]?.pad ?? 0));
+  const [c3Every, setC3Every] = useState(String(existing?.counters?.[2]?.every ?? 100));
+  // New step types
+  const [swapSeparator, setSwapSeparator] = useState(existing?.swapSeparator ?? " - ");
+  const [padWidth, setPadWidth] = useState(String(existing?.padWidth ?? 3));
+  const [parentSep, setParentSep] = useState(existing?.parentSeparator ?? " - ");
+  const [insertText, setInsertText] = useState(existing?.insertText ?? "");
+  const [posIndex, setPosIndex] = useState(String(existing?.positionIndex ?? 0));
+  const [posFromEnd, setPosFromEnd] = useState(existing?.positionFromEnd ?? false);
+  const [removeCount, setRemoveCount] = useState(String(existing?.removeCount ?? 1));
 
   function buildStep(): ScriptStep {
     const step: ScriptStep = { type: stepType };
@@ -87,12 +123,65 @@ function StepForm({ onSubmit, existing }: { onSubmit: (step: ScriptStep) => void
         step.movieQuality = movieQuality;
         step.wordDelimiter = wordDel;
         break;
-      case "sequential":
       case "enumerate":
-        step.prefix = prefix;
-        step.startNumber = parseInt(startNum) || 1;
-        step.zeroPad = parseInt(zeroPad) || 3;
-        step.separator = separator;
+        step.customTemplate = customTemplate;
+        if (customTemplate) {
+          step.template = template;
+          const counters: EnumCounter[] = [
+            {
+              format: c1Format,
+              start: parseInt(c1Start) || 1,
+              pad: parseInt(c1Pad) || 0,
+              every: parseInt(c1Every) || 1,
+            },
+          ];
+          if (c2Enabled) {
+            counters.push({
+              format: c2Format,
+              start: parseInt(c2Start) || 1,
+              pad: parseInt(c2Pad) || 0,
+              every: parseInt(c2Every) || 1,
+            });
+          }
+          if (c3Enabled) {
+            counters.push({
+              format: c3Format,
+              start: parseInt(c3Start) || 1,
+              pad: parseInt(c3Pad) || 0,
+              every: parseInt(c3Every) || 1,
+            });
+          }
+          step.counters = counters;
+        } else {
+          step.prefix = prefix;
+          step.startNumber = parseInt(startNum) || 1;
+          step.zeroPad = parseInt(zeroPad) || 3;
+          step.separator = separator;
+          step.keepName = keepName;
+          step.position = position;
+          step.format = enumFormat;
+          step.enumSuffix = enumSuffix;
+        }
+        break;
+      case "swap-parts":
+        step.swapSeparator = swapSeparator;
+        break;
+      case "pad-numbers":
+        step.padWidth = parseInt(padWidth) || 3;
+        break;
+      case "parent-folder":
+        step.prefix = prefix || "Folder";
+        step.parentSeparator = parentSep;
+        break;
+      case "insert-at-position":
+        step.insertText = insertText;
+        step.positionIndex = parseInt(posIndex) || 0;
+        step.positionFromEnd = posFromEnd;
+        break;
+      case "remove-at-position":
+        step.positionIndex = parseInt(posIndex) || 0;
+        step.removeCount = parseInt(removeCount) || 1;
+        step.positionFromEnd = posFromEnd;
         break;
     }
     return step;
@@ -126,12 +215,25 @@ function StepForm({ onSubmit, existing }: { onSubmit: (step: ScriptStep) => void
           <Form.Dropdown.Item value="swap-delimiter" title="Swap Delimiter" />
           <Form.Dropdown.Item value="find-replace" title="Find & Replace" />
           <Form.Dropdown.Item value="change-extension" title="Change Extension" />
+          <Form.Dropdown.Item value="remove-accents" title="Remove Accents" />
+          <Form.Dropdown.Item value="strip-digits" title="Strip Digits" />
+          <Form.Dropdown.Item value="strip-special" title="Strip Special Characters" />
+          <Form.Dropdown.Item value="trim" title="Trim Filename" />
+          <Form.Dropdown.Item value="transliterate" title="Transliterate to Latin" />
+        </Form.Dropdown.Section>
+        <Form.Dropdown.Section title="Transform">
+          <Form.Dropdown.Item value="pad-numbers" title="Add Zero Padding" />
+          <Form.Dropdown.Item value="unpad-numbers" title="Remove Zero Padding" />
+          <Form.Dropdown.Item value="parent-folder" title="Prepend Parent Folder" />
+          <Form.Dropdown.Item value="swap-parts" title="Swap Parts" />
+          <Form.Dropdown.Item value="insert-at-position" title="Insert at Position" />
+          <Form.Dropdown.Item value="remove-at-position" title="Remove at Position" />
         </Form.Dropdown.Section>
         <Form.Dropdown.Section title="Rename Format">
           <Form.Dropdown.Item value="tv-show" title="Rename as TV Show" />
           <Form.Dropdown.Item value="anime" title="Rename as Anime" />
           <Form.Dropdown.Item value="movie" title="Rename as Movie" />
-          <Form.Dropdown.Item value="sequential" title="Rename Sequentially" />
+
           <Form.Dropdown.Item value="enumerate" title="Auto Enumerate" />
         </Form.Dropdown.Section>
       </Form.Dropdown>
@@ -260,24 +362,345 @@ function StepForm({ onSubmit, existing }: { onSubmit: (step: ScriptStep) => void
         </>
       )}
 
-      {(stepType === "sequential" || stepType === "enumerate") && (
+      {stepType === "enumerate" && (
         <>
-          <Form.TextField id="prefix" title="Prefix" placeholder="photo" value={prefix} onChange={setPrefix} />
-          <Form.TextField id="startNum" title="Start Number" placeholder="1" value={startNum} onChange={setStartNum} />
-          <Form.TextField id="zeroPad" title="Zero Padding" placeholder="3" value={zeroPad} onChange={setZeroPad} />
-          <Form.Dropdown id="separator" title="Separator" value={separator} onChange={setSeparator}>
-            <Form.Dropdown.Item value="-" title="Dash (-)" />
-            <Form.Dropdown.Item value="_" title="Underscore (_)" />
-            <Form.Dropdown.Item value="." title="Dot (.)" />
-            <Form.Dropdown.Item value=" " title="Space" />
-          </Form.Dropdown>
+          <Form.Checkbox
+            id="customTemplate"
+            label="Custom Template"
+            value={customTemplate}
+            onChange={setCustomTemplate}
+            info="Use a template with multiple counters for advanced enumeration patterns."
+          />
+
+          {!customTemplate && (
+            <>
+              <Form.Checkbox id="keepName" label="Keep Original Filename" value={keepName} onChange={setKeepName} />
+              {keepName && (
+                <Form.Dropdown
+                  id="position"
+                  title="Number Position"
+                  value={position}
+                  onChange={(v) => setPosition(v as "before" | "after")}
+                >
+                  <Form.Dropdown.Item value="before" title="Before Name" />
+                  <Form.Dropdown.Item value="after" title="After Name" />
+                </Form.Dropdown>
+              )}
+              <Form.Dropdown
+                id="enumFormat"
+                title="Number Format"
+                value={enumFormat}
+                onChange={(v) => setEnumFormat(v as "numeric" | "alpha" | "alpha-upper")}
+              >
+                <Form.Dropdown.Item value="numeric" title="Numeric (001, 002, 003)" />
+                <Form.Dropdown.Item value="alpha-upper" title="Alphabetic A, B, C" />
+                <Form.Dropdown.Item value="alpha" title="Alphabetic a, b, c" />
+              </Form.Dropdown>
+              <Form.TextField
+                id="prefix"
+                title="Prefix (Optional)"
+                placeholder="photo"
+                value={prefix}
+                onChange={setPrefix}
+              />
+              <Form.TextField
+                id="enumSuffix"
+                title="Suffix (Optional)"
+                placeholder="final"
+                value={enumSuffix}
+                onChange={setEnumSuffix}
+              />
+              {enumFormat === "numeric" && (
+                <>
+                  <Form.TextField
+                    id="startNum"
+                    title="Start Number"
+                    placeholder="1"
+                    value={startNum}
+                    onChange={setStartNum}
+                  />
+                  <Form.TextField
+                    id="zeroPad"
+                    title="Zero Padding"
+                    placeholder="3"
+                    value={zeroPad}
+                    onChange={setZeroPad}
+                  />
+                </>
+              )}
+              <Form.Dropdown id="separator" title="Separator" value={separator} onChange={setSeparator}>
+                <Form.Dropdown.Item value="-" title="Dash (-)" />
+                <Form.Dropdown.Item value="_" title="Underscore (_)" />
+                <Form.Dropdown.Item value="." title="Dot (.)" />
+                <Form.Dropdown.Item value=" " title="Space" />
+              </Form.Dropdown>
+            </>
+          )}
+
+          {customTemplate && (
+            <>
+              <Form.TextField
+                id="template"
+                title="Template"
+                placeholder="{1} - {name}"
+                value={template}
+                onChange={setTemplate}
+                info="Use {1}, {2}, {3} for counters and {name} for the original filename. Extension is added automatically."
+              />
+              <Form.Separator />
+              <Form.Description title="Counter {1}" text="Always active." />
+              <Form.Dropdown
+                id="c1Format"
+                title="{1} Format"
+                value={c1Format}
+                onChange={(v) => setC1Format(v as "numeric" | "alpha" | "alpha-upper")}
+              >
+                <Form.Dropdown.Item value="numeric" title="Numeric (1, 2, 3)" />
+                <Form.Dropdown.Item value="alpha-upper" title="Alphabetic A, B, C" />
+                <Form.Dropdown.Item value="alpha" title="Alphabetic a, b, c" />
+              </Form.Dropdown>
+              <Form.TextField id="c1Start" title="{1} Start" placeholder="1" value={c1Start} onChange={setC1Start} />
+              {c1Format === "numeric" && (
+                <Form.TextField id="c1Pad" title="{1} Zero Padding" placeholder="0" value={c1Pad} onChange={setC1Pad} />
+              )}
+              <Form.TextField
+                id="c1Every"
+                title="{1} Increment Every"
+                placeholder="1"
+                value={c1Every}
+                onChange={setC1Every}
+                info="Increment this counter every N files."
+              />
+              <Form.Separator />
+              <Form.Checkbox id="c2Enabled" label="Enable Counter {2}" value={c2Enabled} onChange={setC2Enabled} />
+              {c2Enabled && (
+                <>
+                  <Form.Dropdown
+                    id="c2Format"
+                    title="{2} Format"
+                    value={c2Format}
+                    onChange={(v) => setC2Format(v as "numeric" | "alpha" | "alpha-upper")}
+                  >
+                    <Form.Dropdown.Item value="numeric" title="Numeric (1, 2, 3)" />
+                    <Form.Dropdown.Item value="alpha-upper" title="Alphabetic A, B, C" />
+                    <Form.Dropdown.Item value="alpha" title="Alphabetic a, b, c" />
+                  </Form.Dropdown>
+                  <Form.TextField
+                    id="c2Start"
+                    title="{2} Start"
+                    placeholder="1"
+                    value={c2Start}
+                    onChange={setC2Start}
+                  />
+                  {c2Format === "numeric" && (
+                    <Form.TextField
+                      id="c2Pad"
+                      title="{2} Zero Padding"
+                      placeholder="0"
+                      value={c2Pad}
+                      onChange={setC2Pad}
+                    />
+                  )}
+                  <Form.TextField
+                    id="c2Every"
+                    title="{2} Increment Every"
+                    placeholder="10"
+                    value={c2Every}
+                    onChange={setC2Every}
+                  />
+                </>
+              )}
+              <Form.Separator />
+              <Form.Checkbox id="c3Enabled" label="Enable Counter {3}" value={c3Enabled} onChange={setC3Enabled} />
+              {c3Enabled && (
+                <>
+                  <Form.Dropdown
+                    id="c3Format"
+                    title="{3} Format"
+                    value={c3Format}
+                    onChange={(v) => setC3Format(v as "numeric" | "alpha" | "alpha-upper")}
+                  >
+                    <Form.Dropdown.Item value="numeric" title="Numeric (1, 2, 3)" />
+                    <Form.Dropdown.Item value="alpha-upper" title="Alphabetic A, B, C" />
+                    <Form.Dropdown.Item value="alpha" title="Alphabetic a, b, c" />
+                  </Form.Dropdown>
+                  <Form.TextField
+                    id="c3Start"
+                    title="{3} Start"
+                    placeholder="1"
+                    value={c3Start}
+                    onChange={setC3Start}
+                  />
+                  {c3Format === "numeric" && (
+                    <Form.TextField
+                      id="c3Pad"
+                      title="{3} Zero Padding"
+                      placeholder="0"
+                      value={c3Pad}
+                      onChange={setC3Pad}
+                    />
+                  )}
+                  <Form.TextField
+                    id="c3Every"
+                    title="{3} Increment Every"
+                    placeholder="100"
+                    value={c3Every}
+                    onChange={setC3Every}
+                  />
+                </>
+              )}
+              <Form.Separator />
+              <Form.Description
+                title="Preview"
+                text={(() => {
+                  const tmpl = template || "{1} - {name}";
+                  const lines: string[] = [];
+                  for (let fi = 0; fi < 3; fi++) {
+                    let result = tmpl;
+                    const allCounters = [
+                      {
+                        format: c1Format,
+                        start: parseInt(c1Start) || 1,
+                        pad: parseInt(c1Pad) || 0,
+                        every: parseInt(c1Every) || 1,
+                      },
+                      ...(c2Enabled
+                        ? [
+                            {
+                              format: c2Format,
+                              start: parseInt(c2Start) || 1,
+                              pad: parseInt(c2Pad) || 0,
+                              every: parseInt(c2Every) || 1,
+                            },
+                          ]
+                        : []),
+                      ...(c3Enabled
+                        ? [
+                            {
+                              format: c3Format,
+                              start: parseInt(c3Start) || 1,
+                              pad: parseInt(c3Pad) || 0,
+                              every: parseInt(c3Every) || 1,
+                            },
+                          ]
+                        : []),
+                    ];
+                    for (let c = 0; c < allCounters.length; c++) {
+                      const cnt = allCounters[c];
+                      const every = Math.max(1, cnt.every);
+                      const val = cnt.start + Math.floor(fi / every);
+                      const formatted = formatIndex(val, cnt.format, cnt.pad);
+                      result = result.replace(new RegExp(`\\{${c + 1}\\}`, "g"), formatted);
+                    }
+                    result = result.replace(/\{name\}/g, "filename");
+                    lines.push(`${result}.ext`);
+                  }
+                  return lines.join(",  ");
+                })()}
+              />
+            </>
+          )}
+        </>
+      )}
+
+      {stepType === "swap-parts" && (
+        <Form.TextField
+          id="swapSeparator"
+          title="Separator"
+          placeholder=" - "
+          value={swapSeparator}
+          onChange={setSwapSeparator}
+          info='Swap the two parts of the filename around this separator. E.g. "Artist - Song" becomes "Song - Artist".'
+        />
+      )}
+
+      {stepType === "pad-numbers" && (
+        <Form.TextField
+          id="padWidth"
+          title="Pad Width"
+          placeholder="3"
+          value={padWidth}
+          onChange={setPadWidth}
+          info="Pad numbers in filenames to this many digits. E.g. 3 turns file1 into file001."
+        />
+      )}
+
+      {stepType === "parent-folder" && (
+        <>
+          <Form.TextField
+            id="parentPrefix"
+            title="Folder Name"
+            placeholder="Folder"
+            value={prefix}
+            onChange={setPrefix}
+            info="The folder name to prepend. When run in a script, this uses the value you type here."
+          />
+          <Form.TextField
+            id="parentSep"
+            title="Separator"
+            placeholder=" - "
+            value={parentSep}
+            onChange={setParentSep}
+          />
+        </>
+      )}
+
+      {stepType === "insert-at-position" && (
+        <>
+          <Form.TextField
+            id="insertText"
+            title="Text to Insert"
+            placeholder="prefix_"
+            value={insertText}
+            onChange={setInsertText}
+          />
+          <Form.TextField
+            id="posIndex"
+            title="Position"
+            placeholder="0"
+            value={posIndex}
+            onChange={setPosIndex}
+            info="Character position to insert at. 0 = beginning of filename."
+          />
+          <Form.Checkbox id="posFromEnd" label="Count from End" value={posFromEnd} onChange={setPosFromEnd} />
+        </>
+      )}
+
+      {stepType === "remove-at-position" && (
+        <>
+          <Form.TextField
+            id="posIndex"
+            title="Start Position"
+            placeholder="0"
+            value={posIndex}
+            onChange={setPosIndex}
+            info="Character position to start removing from."
+          />
+          <Form.TextField
+            id="removeCount"
+            title="Characters to Remove"
+            placeholder="1"
+            value={removeCount}
+            onChange={setRemoveCount}
+          />
+          <Form.Checkbox id="posFromEnd" label="Count from End" value={posFromEnd} onChange={setPosFromEnd} />
         </>
       )}
 
       {/* No-config steps */}
-      {["uppercase", "lowercase", "titlecase", "sentencecase", "collapse-spaces"].includes(stepType) && (
-        <Form.Description title="" text="This step has no additional configuration." />
-      )}
+      {[
+        "uppercase",
+        "lowercase",
+        "titlecase",
+        "sentencecase",
+        "collapse-spaces",
+        "remove-accents",
+        "strip-digits",
+        "strip-special",
+        "trim",
+        "unpad-numbers",
+        "transliterate",
+      ].includes(stepType) && <Form.Description title="" text="This step has no additional configuration." />}
     </Form>
   );
 }

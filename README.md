@@ -8,6 +8,24 @@ Bulk rename and organize files directly from Raycast. 30 commands covering every
 
 Every function is its own Raycast command — assign aliases and hotkeys to the ones you use most. All commands auto-detect the current Finder folder.
 
+## Table of Contents
+
+- [Getting Started](#getting-started)
+- [Rename Files](#rename-files) — TV Show, Anime, Movie, Date-Based, Change Case, Swap Delimiter, Auto Enumerate, Change Extension, Find & Replace
+  - [Custom Template Mode](#custom-template-mode)
+- [Smart Organize Episodes](#smart-organize-episodes)
+- [Smart Find & Replace](#smart-find--replace)
+- [Sort Files by Date](#sort-files-by-date)
+- [Sort Photos by Location](#sort-photos-by-location)
+- [Rename Photos by EXIF](#rename-photos-by-exif)
+- [Rename from CSV](#rename-from-csv)
+- [Custom Rename Scripts](#custom-rename-scripts)
+- [Preset Shortcuts](#preset-shortcuts)
+- [Instant Commands](#instant-commands) — Case, Delimiter, Clean Up, Utility, Undo
+- [Finder Detection](#finder-detection)
+- [Metadata Integration](#metadata-integration-optional) — TMDB, TheTVDB
+- [Tips](#tips)
+
 ## Getting Started
 
 1. Install from the Raycast Store
@@ -20,7 +38,7 @@ No additional setup required. To enable online metadata lookup for episode organ
 
 ## Rename Files
 
-The main command. Select a preset, configure options, preview all renames, then confirm. Smart detection analyzes the folder on launch and auto-suggests the best preset, auto-fills show names and season numbers.
+The main command. Select a preset, configure options, preview all renames, then confirm. Defaults to Find & Replace.
 
 ### TV Show
 
@@ -81,24 +99,6 @@ Note: All files in the folder are renamed to the same movie name you provide.
 | Quality        | Quality tag (optional, e.g. `1080p`)    | —                            |
 | Word Separator | Space, Dot, Underscore, Dash, or Custom | Space                        |
 
-### Sequential
-
-Prefix with incrementing number.
-
-```
-Before           After
-IMG_0001.jpg     Beach-Trip-001.jpg
-IMG_0002.jpg     Beach-Trip-002.jpg
-DSC_3345.jpg     Beach-Trip-003.jpg
-```
-
-| Option       | Description                       | Default |
-| ------------ | --------------------------------- | ------- |
-| Prefix       | Text before the number (required) | —       |
-| Start Number | First number                      | `1`     |
-| Zero Padding | Number of digits (e.g. 3 = `001`) | `3`     |
-| Separator    | Dash, Underscore, Dot, or Space   | Dash    |
-
 ### Date-Based
 
 Rename using file creation date.
@@ -151,23 +151,67 @@ Underscores to dashes:   my_vacation_photo.jpg      →  my-vacation-photo.jpg
 
 ### Auto Enumerate
 
-Number files sequentially. The sort order controls which file gets which number.
+Number files sequentially. By default, the number is prepended to the original filename. The sort order controls which file gets which number.
 
 ```
-By name:           photo-a.jpg → 001.jpg, photo-b.jpg → 002.jpg
-By date created:   (oldest first) → 001.jpg, 002.jpg, 003.jpg
-By date modified:  (most recently changed last) → 001.jpg, 002.jpg, 003.jpg
-By file size:      (smallest first) → 001.jpg, 002.jpg, 003.jpg
-By name length:    (shortest name first) → 001.jpg, 002.jpg, 003.jpg
+Keep name (before):   apple.txt → 001-apple.txt, banana.txt → 002-banana.txt
+Keep name (after):    apple.txt → apple-001.txt, banana.txt → banana-002.txt
+Replace name:         apple.txt → 001.txt, banana.txt → 002.txt
+Alphabetic:           apple.txt → A-apple.txt, banana.txt → B-banana.txt
+With prefix:          apple.txt → photo-001-apple.txt
+With suffix:          apple.txt → 001-apple-final.txt
 ```
 
-| Option        | Description                                                             | Default   |
-| ------------- | ----------------------------------------------------------------------- | --------- |
-| Prefix        | Text before the number (optional — omit for just `001.ext`)             | —         |
-| Start Number  | First number                                                            | `1`       |
-| Zero Padding  | Number of digits                                                        | `3`       |
-| Separator     | Dash, Underscore, Dot, or Space                                         | Dash      |
-| Sort Files By | File Name (A-Z), Date Created, Date Modified, File Size, or Name Length | File Name |
+| Option                 | Description                                                             | Default   |
+| ---------------------- | ----------------------------------------------------------------------- | --------- |
+| Keep Original Filename | Prepend/append number to original name instead of replacing it          | On        |
+| Number Position        | Before Name or After Name (shown when Keep Original Filename is on)     | Before    |
+| Number Format          | Numeric (001), Alphabetic A, B, C, or Alphabetic a, b, c                | Numeric   |
+| Prefix                 | Text before the number (optional)                                       | --        |
+| Suffix                 | Text after the name (optional)                                          | --        |
+| Start Number           | First number (numeric format only)                                      | `1`       |
+| Zero Padding           | Number of digits (numeric format only)                                  | `3`       |
+| Separator              | Dash, Underscore, Dot, or Space                                         | Dash      |
+| Sort Files By          | File Name (A-Z), Date Created, Date Modified, File Size, or Name Length | File Name |
+
+#### Custom Template Mode
+
+Toggle **Custom Template** on for advanced patterns with multiple independent counters. Write a template using placeholders and configure up to 3 counters, each with its own format, start value, padding, and increment frequency.
+
+**Template placeholders:**
+
+- `{1}`, `{2}`, `{3}` -- counter references
+- `{name}` -- original filename (without extension)
+- Extension is added automatically
+
+**Counter options (up to 3):**
+
+| Option          | Description                                                  | Default |
+| --------------- | ------------------------------------------------------------ | ------- |
+| Format          | Numeric (1, 2, 3), Alphabetic A, B, C, or Alphabetic a, b, c | Numeric |
+| Start           | Starting value                                               | `1`     |
+| Zero Padding    | Number of digits (numeric only, 0 = no padding)              | `0`     |
+| Increment Every | How many files before incrementing (1 = every file)          | `1`     |
+
+**Examples:**
+
+```
+Template: {1} - {name}
+  Counter {1}: numeric, every 1
+  → 1 - apple.txt, 2 - banana.txt, 3 - cherry.txt
+
+Template: {1}_{name}_{2}
+  Counter {1}: numeric, every 1
+  Counter {2}: numeric, every 3
+  → 1_apple_1.txt, 2_banana_1.txt, 3_cherry_1.txt, 4_donut_2.txt, 5_eclair_2.txt
+
+Template: {1}{2} - {name}
+  Counter {1}: alpha-upper, every 3
+  Counter {2}: numeric, pad 2, every 1
+  → A01 - apple.txt, A02 - banana.txt, A03 - cherry.txt, B04 - donut.txt
+```
+
+The preview shows the first 3 resulting filenames so you can verify the pattern before applying.
 
 ### Change Extension
 
@@ -337,6 +381,49 @@ Photos without GPS data are shown in the preview but left untouched during organ
 
 ---
 
+## Rename Photos by EXIF
+
+Rename photos using embedded EXIF metadata -- date taken, camera make/model, ISO, focal length, and resolution.
+
+**Template placeholders:**
+
+- `{date}` -- date taken (format configurable)
+- `{make}` -- camera manufacturer (Canon, Nikon, etc.)
+- `{model}` -- camera model (EOS R5, Z9, etc.)
+- `{iso}` -- ISO speed
+- `{focal}` -- focal length (e.g. 85mm)
+- `{width}`, `{height}` -- image dimensions
+- `{name}` -- original filename
+- `{i}` -- index (001, 002, etc.)
+
+**Date formats:** `2026-03-31_14-30-00`, `2026-03-31`, `20260331`, `31-03-2026`
+
+```
+Template: {date}_{i}         → 2026-03-31_14-30-00_001.jpg
+Template: {model}_{date}_{i} → EOS R5_2026-03-31_001.jpg
+Template: {date}_{name}      → 2026-03-31_DSC_0001.jpg
+```
+
+Files are automatically sorted by EXIF date taken. Supports JPEG, TIFF, HEIC, RAW (ARW, CR2, NEF, DNG), and more.
+
+---
+
+## Rename from CSV
+
+Rename files using a mapping of old names to new names. Paste the mappings directly or copy from a spreadsheet.
+
+**Supported separators:** Comma, Tab, Semicolon, Pipe, Arrow (`->`)
+
+```
+old-name.txt,new-name.txt
+photo.jpg,vacation-001.jpg
+report.pdf,Q1-2026-report.pdf
+```
+
+Files that don't exist in the folder are skipped with a warning. Preview is shown before any changes are applied.
+
+---
+
 ## Custom Rename Scripts
 
 Build reusable rename pipelines that combine a file filter with a sequence of rename steps. Save them and run later with a single action.
@@ -350,15 +437,16 @@ Build reusable rename pipelines that combine a file filter with a sequence of re
    - **File Filter** — glob pattern to target specific files (e.g. `*.mkv`, leave empty for all files)
 3. Add steps to the pipeline — each step transforms the filename and passes the result to the next step
 
-**Available step types (13):**
+**Available step types (24):**
 
-| Category      | Step Types                                                                               |
-| ------------- | ---------------------------------------------------------------------------------------- |
-| Case          | UPPERCASE, lowercase, Title Case, Sentence Case                                          |
-| Clean Up      | Collapse Multiple Spaces, Swap Delimiter, Find & Replace, Change Extension               |
-| Rename Format | Rename as TV Show, Rename as Anime, Rename as Movie, Rename Sequentially, Auto Enumerate |
+| Category      | Step Types                                                                                                                                                                |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Case          | UPPERCASE, lowercase, Title Case, Sentence Case                                                                                                                           |
+| Clean Up      | Collapse Multiple Spaces, Swap Delimiter, Find & Replace, Change Extension, Remove Accents, Strip Digits, Strip Special Characters, Trim Filename, Transliterate to Latin |
+| Transform     | Add Zero Padding, Remove Zero Padding, Prepend Parent Folder, Swap Parts, Insert at Position, Remove at Position                                                          |
+| Rename Format | Rename as TV Show, Rename as Anime, Rename as Movie, Auto Enumerate                                                                                                       |
 
-Each step type has the same configuration options as its corresponding preset in the Rename Files command. The TV Show and Anime steps auto-detect episode numbers from the current filename (after previous steps have been applied).
+Steps with configuration options (e.g. Swap Parts lets you set the separator, Insert at Position lets you set text and position) show their options when added. No-config steps like Remove Accents or Trim just run as-is. The TV Show and Anime steps auto-detect episode numbers from the current filename (after previous steps have been applied).
 
 **Keyboard shortcuts in the script builder:**
 
@@ -409,7 +497,6 @@ Each preset from Rename Files is also available as a standalone command for dire
 | Rename as TV Show       | `Show Name S01E01.ext`                             |
 | Rename as Anime         | `[Group] Name - 01 [Quality].ext`                  |
 | Rename as Movie         | `Name Year Quality.ext`                            |
-| Rename Sequentially     | `Prefix-001.ext`                                   |
 | Rename by Date          | `Prefix-2025-01-15_09-00-00-001.ext`               |
 | Change Filename Case    | UPPERCASE / lowercase / Title Case / Sentence case |
 | Swap Filename Delimiter | Replace any delimiter with another                 |
@@ -444,15 +531,29 @@ All case commands also collapse multiple spaces into single spaces automatically
 | Replace Dashes with Spaces      | `my-file.jpg` → `my file.jpg`               |
 | Replace Spaces with Dashes      | `my file.jpg` → `my-file.jpg`               |
 
+### Clean Up
+
+| Command                       | Example                                   |
+| ----------------------------- | ----------------------------------------- |
+| Remove Accents from Filenames | `café résumé.txt` → `cafe resume.txt`     |
+| Strip Digits from Filenames   | `file123name456.txt` → `filename.txt`     |
+| Strip Special Characters      | `file (copy) [2].txt` → `file copy 2.txt` |
+| Trim Filenames                | ` - file - .txt` → `file.txt`             |
+| Transliterate to Latin        | `Москва.txt` → `Moskva.txt`               |
+
 ### Utility
 
-| Command                         | Example                                                       |
-| ------------------------------- | ------------------------------------------------------------- |
-| Collapse Multiple Spaces        | `my   show  name.mkv` → `my show name.mkv`                    |
-| Enumerate Files by Name         | Alphabetical (natural sort) → `001.ext`, `002.ext`, `003.ext` |
-| Enumerate Files by Date Created | Oldest first → `001.ext`, `002.ext`, `003.ext`                |
+| Command                          | Example                                           |
+| -------------------------------- | ------------------------------------------------- |
+| Collapse Multiple Spaces         | `my   show  name.mkv` → `my show name.mkv`        |
+| Enumerate Files by Name          | Alphabetical → `1 - apple.ext`, `2 - banana.ext`  |
+| Enumerate Files by Date Created  | Oldest first → `1 - oldest.ext`, `2 - middle.ext` |
+| Add Zero Padding to Numbers      | `file1.txt` → `file001.txt`                       |
+| Remove Zero Padding from Numbers | `file001.txt` → `file1.txt`                       |
+| Prepend Parent Folder Name       | In folder `NYC`: `img.jpg` → `NYC - img.jpg`      |
+| Swap Filename Parts              | `Artist - Song.mp3` → `Song - Artist.mp3`         |
 
-Both enumerate commands use 3-digit zero-padded numbers. Enumerate by Date uses creation date, falling back to modification date.
+Enumerate commands prepend the number to the original filename. Enumerate by Date uses creation date, falling back to modification date.
 
 ### Undo
 
@@ -461,20 +562,6 @@ Both enumerate commands use 3-digit zero-padded numbers. Enumerate by Date uses 
 | Undo Last Rename | Reverts the last rename or organize operation. Available within 5 minutes. Single use — cannot undo twice. |
 
 Every command in Rebaptize saves undo state — including Rename Files, Smart Organize Episodes, Smart Find & Replace, Sort Files by Date, Sort Photos by Location, Run Rename Script, and all instant commands. For organize commands that move files into subfolders, undo moves them back and cleans up the empty folders.
-
----
-
-## Smart Detection
-
-When you open Rename Files or Smart Organize Episodes, the extension analyzes the files in the folder and auto-fills fields:
-
-- **Show name** — detected from the most common filename prefix, parsed episode data, or the folder name as a last resort (excluding system folders like Downloads, Desktop, Documents)
-- **Preset suggestion** — if most files look like TV episodes, selects TV Show; if they match anime fansub format, selects Anime; if they contain year + quality keywords, selects Movie; otherwise defaults to Sequential
-- **Season numbers** — extracted from `SxxExx` patterns in filenames. If multiple seasons are detected, suggests using Smart Organize Episodes instead
-- **Episodes per season** — estimated from the number of episodes per detected season
-- **Confidence score** — shown in the Smart Detection note at the top of the form
-
-All auto-filled values can be overridden manually.
 
 ---
 

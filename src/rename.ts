@@ -44,7 +44,6 @@ export type RenameMode =
   | "tv-show"
   | "anime"
   | "movie"
-  | "sequential"
   | "date"
   | "find-replace"
   | "change-extension"
@@ -69,11 +68,6 @@ export interface RenameOptions {
   movieName?: string;
   year?: string;
   movieQuality?: string;
-  // Sequential mode
-  prefix?: string;
-  startNumber?: number;
-  zeroPad?: number;
-  separator?: string;
   // Date mode
   dateFormat?: "YYYY-MM-DD" | "DD-MM-YYYY" | "MM-DD-YYYY";
   datePrefix?: string;
@@ -96,10 +90,25 @@ export interface RenameOptions {
   enumPad?: number;
   enumSeparator?: string;
   enumSortBy?: "name" | "created" | "modified" | "size" | "name-length";
+  enumKeepName?: boolean; // prepend/append number to original name instead of replacing
+  enumPosition?: "before" | "after"; // number position relative to original name
+  enumFormat?: "numeric" | "alpha" | "alpha-upper"; // numbering format
+  enumSuffix?: string; // text after everything (before extension)
+  // Custom template enumerate
+  enumCustomTemplate?: boolean; // use custom template mode
+  enumTemplate?: string; // template string with {1}, {2}, {3}, {name} placeholders
+  enumCounters?: EnumCounter[]; // up to 3 counter configs
   // Find & Replace mode
   find?: string;
   replace?: string;
   useRegex?: boolean;
+}
+
+export interface EnumCounter {
+  format: "numeric" | "alpha" | "alpha-upper";
+  start: number;
+  pad: number;
+  every: number; // increment every N files (1 = every file)
 }
 
 export interface RenamePreview {
@@ -173,18 +182,6 @@ export function generateMovieName(
   if (year) parts.push(year);
   if (quality) parts.push(quality);
   return parts.join(delimiter) + ext;
-}
-
-// Sequential: Prefix-001.ext
-export function generateSequentialName(
-  fileName: string,
-  prefix: string,
-  number: number,
-  zeroPad: number,
-  separator: string,
-): string {
-  const ext = extname(fileName);
-  return `${prefix}${separator}${padNumber(number, zeroPad)}${ext}`;
 }
 
 // Date: Prefix-2026-03-30_14-30-00-001.ext
@@ -298,21 +295,339 @@ export function generateSwapDelimiterName(fileName: string, fromDel: string, toD
   return name + ext;
 }
 
-// Enumerate: prefix-001.ext (index passed in, sorting handled externally)
+// Convert a 1-based index to alphabetic: 1→A, 2→B, ..., 26→Z, 27→AA, 28→AB
+function indexToAlpha(index: number, upper: boolean): string {
+  let result = "";
+  let n = index;
+  while (n > 0) {
+    n--;
+    result = String.fromCharCode((upper ? 65 : 97) + (n % 26)) + result;
+    n = Math.floor(n / 26);
+  }
+  return result;
+}
+
+export function formatIndex(index: number, format: string, pad: number): string {
+  switch (format) {
+    case "alpha":
+      return indexToAlpha(index, false);
+    case "alpha-upper":
+      return indexToAlpha(index, true);
+    case "numeric":
+    default:
+      return String(index).padStart(pad, "0");
+  }
+}
+
+// Enumerate: flexible naming with optional original name preservation
 export function generateEnumerateName(
   fileName: string,
   prefix: string,
   index: number,
   pad: number,
   separator: string,
+  keepName = false,
+  position: "before" | "after" = "before",
+  format = "numeric",
+  suffix = "",
 ): string {
   const ext = extname(fileName);
-  const num = String(index).padStart(pad, "0");
-  if (prefix) {
-    return `${prefix}${separator}${num}${ext}`;
+  const originalName = fileName.slice(0, fileName.length - ext.length);
+  const num = formatIndex(index, format, pad);
+  const suffixPart = suffix ? `${separator}${suffix}` : "";
+
+  if (keepName) {
+    if (position === "before") {
+      const prefixPart = prefix ? `${prefix}${separator}` : "";
+      return `${prefixPart}${num}${separator}${originalName}${suffixPart}${ext}`;
+    } else {
+      const prefixPart = prefix ? `${prefix}${separator}` : "";
+      return `${prefixPart}${originalName}${separator}${num}${suffixPart}${ext}`;
+    }
   }
-  return `${num}${ext}`;
+
+  // Original behavior: replace name entirely
+  if (prefix) {
+    return `${prefix}${separator}${num}${suffixPart}${ext}`;
+  }
+  return `${num}${suffixPart}${ext}`;
 }
+
+// Custom template enumerate with multiple counters
+// Template uses {1}, {2}, {3} for counters and {name} for original filename
+export function generateTemplateEnumerateName(
+  fileName: string,
+  template: string,
+  fileIndex: number,
+  counters: EnumCounter[],
+): string {
+  const ext = extname(fileName);
+  const originalName = fileName.slice(0, fileName.length - ext.length);
+
+  let result = template;
+
+  // Replace counter placeholders
+  for (let c = 0; c < counters.length; c++) {
+    const counter = counters[c];
+    const every = Math.max(1, counter.every);
+    // Calculate this counter's value: increments every N files
+    const counterValue = counter.start + Math.floor(fileIndex / every);
+    const formatted = formatIndex(counterValue, counter.format, counter.pad);
+    result = result.replace(new RegExp(`\\{${c + 1}\\}`, "g"), formatted);
+  }
+
+  // Replace {name} placeholder
+  result = result.replace(/\{name\}/g, originalName);
+
+  return result + ext;
+}
+
+// ─── Utility rename functions ─────────────────────────────────────────────────
+
+// Remove accents/diacritics: café → cafe, über → uber
+export function removeAccents(fileName: string): string {
+  const ext = extname(fileName);
+  const name = fileName.slice(0, fileName.length - ext.length);
+  const cleaned = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return cleaned + ext;
+}
+
+// Strip digits from filename
+export function stripDigits(fileName: string): string {
+  const ext = extname(fileName);
+  const name = fileName.slice(0, fileName.length - ext.length);
+  const cleaned = name
+    .replace(/\d/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return (cleaned || name) + ext;
+}
+
+// Strip special characters (keep letters, digits, spaces, dashes, underscores)
+export function stripSpecialChars(fileName: string): string {
+  const ext = extname(fileName);
+  const name = fileName.slice(0, fileName.length - ext.length);
+  const cleaned = name
+    .replace(/[^a-zA-Z0-9\s\-_]/g, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return (cleaned || name) + ext;
+}
+
+// Trim leading/trailing whitespace, dashes, dots, underscores from filename
+export function trimFilename(fileName: string): string {
+  const ext = extname(fileName);
+  const name = fileName.slice(0, fileName.length - ext.length);
+  const cleaned = name.replace(/^[\s.\-_]+|[\s.\-_]+$/g, "");
+  return (cleaned || name) + ext;
+}
+
+// Add zero padding to numbers in filename: file1 → file001
+export function padNumbersInName(fileName: string, width = 3): string {
+  const ext = extname(fileName);
+  const name = fileName.slice(0, fileName.length - ext.length);
+  const padded = name.replace(/\d+/g, (match) => match.padStart(width, "0"));
+  return padded + ext;
+}
+
+// Remove zero padding from numbers: file001 → file1
+export function unpadNumbersInName(fileName: string): string {
+  const ext = extname(fileName);
+  const name = fileName.slice(0, fileName.length - ext.length);
+  const unpadded = name.replace(/\d+/g, (match) => String(parseInt(match)));
+  return unpadded + ext;
+}
+
+// Prepend parent folder name: folder "NYC", file "img.jpg" → "NYC - img.jpg"
+export function prependParentFolder(fileName: string, parentName: string, separator = " - "): string {
+  return `${parentName}${separator}${fileName}`;
+}
+
+// Swap two parts around a separator: "Artist - Song" → "Song - Artist"
+export function swapParts(fileName: string, separator = " - "): string {
+  const ext = extname(fileName);
+  const name = fileName.slice(0, fileName.length - ext.length);
+  const idx = name.indexOf(separator);
+  if (idx === -1) return fileName; // no separator found, no change
+  const left = name.slice(0, idx);
+  const right = name.slice(idx + separator.length);
+  return `${right}${separator}${left}${ext}`;
+}
+
+// Transliterate common non-Latin characters to ASCII
+const TRANSLIT_MAP: Record<string, string> = {
+  // Cyrillic
+  А: "A",
+  Б: "B",
+  В: "V",
+  Г: "G",
+  Д: "D",
+  Е: "E",
+  Ё: "Yo",
+  Ж: "Zh",
+  З: "Z",
+  И: "I",
+  Й: "Y",
+  К: "K",
+  Л: "L",
+  М: "M",
+  Н: "N",
+  О: "O",
+  П: "P",
+  Р: "R",
+  С: "S",
+  Т: "T",
+  У: "U",
+  Ф: "F",
+  Х: "Kh",
+  Ц: "Ts",
+  Ч: "Ch",
+  Ш: "Sh",
+  Щ: "Shch",
+  Ъ: "",
+  Ы: "Y",
+  Ь: "",
+  Э: "E",
+  Ю: "Yu",
+  Я: "Ya",
+  а: "a",
+  б: "b",
+  в: "v",
+  г: "g",
+  д: "d",
+  е: "e",
+  ё: "yo",
+  ж: "zh",
+  з: "z",
+  и: "i",
+  й: "y",
+  к: "k",
+  л: "l",
+  м: "m",
+  н: "n",
+  о: "o",
+  п: "p",
+  р: "r",
+  с: "s",
+  т: "t",
+  у: "u",
+  ф: "f",
+  х: "kh",
+  ц: "ts",
+  ч: "ch",
+  ш: "sh",
+  щ: "shch",
+  ъ: "",
+  ы: "y",
+  ь: "",
+  э: "e",
+  ю: "yu",
+  я: "ya",
+  // German
+  ä: "ae",
+  ö: "oe",
+  ü: "ue",
+  ß: "ss",
+  Ä: "Ae",
+  Ö: "Oe",
+  Ü: "Ue",
+  // Nordic
+  å: "a",
+  Å: "A",
+  æ: "ae",
+  Æ: "AE",
+  ø: "o",
+  Ø: "O",
+  // Polish
+  ą: "a",
+  ć: "c",
+  ę: "e",
+  ł: "l",
+  ń: "n",
+  ś: "s",
+  ź: "z",
+  ż: "z",
+  Ą: "A",
+  Ć: "C",
+  Ę: "E",
+  Ł: "L",
+  Ń: "N",
+  Ś: "S",
+  Ź: "Z",
+  Ż: "Z",
+  // Turkish
+  ğ: "g",
+  ı: "i",
+  ş: "s",
+  Ğ: "G",
+  İ: "I",
+  Ş: "S",
+  // Czech/Slovak
+  č: "c",
+  ď: "d",
+  ě: "e",
+  ň: "n",
+  ř: "r",
+  š: "s",
+  ť: "t",
+  ů: "u",
+  ž: "z",
+  Č: "C",
+  Ď: "D",
+  Ě: "E",
+  Ň: "N",
+  Ř: "R",
+  Š: "S",
+  Ť: "T",
+  Ů: "U",
+  Ž: "Z",
+  // Romanian
+  ă: "a",
+  â: "a",
+  î: "i",
+  ș: "s",
+  ț: "t",
+  Ă: "A",
+  Â: "A",
+  Î: "I",
+  Ș: "S",
+  Ț: "T",
+  // Portuguese/Spanish
+  ã: "a",
+  õ: "o",
+  ñ: "n",
+  Ã: "A",
+  Õ: "O",
+  Ñ: "N",
+};
+
+export function transliterate(fileName: string): string {
+  const ext = extname(fileName);
+  const name = fileName.slice(0, fileName.length - ext.length);
+  // First remove diacritics via normalize, then apply manual map for remaining
+  let result = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  result = result.replace(/./g, (ch) => TRANSLIT_MAP[ch] ?? ch);
+  return result + ext;
+}
+
+// Insert text at a specific position in the filename
+export function insertAtPosition(fileName: string, text: string, position: number, fromEnd = false): string {
+  const ext = extname(fileName);
+  const name = fileName.slice(0, fileName.length - ext.length);
+  const pos = fromEnd ? Math.max(0, name.length - position) : Math.min(position, name.length);
+  return name.slice(0, pos) + text + name.slice(pos) + ext;
+}
+
+// Remove characters at a specific position range
+export function removeAtPosition(fileName: string, start: number, count: number, fromEnd = false): string {
+  const ext = extname(fileName);
+  const name = fileName.slice(0, fileName.length - ext.length);
+  const s = fromEnd ? Math.max(0, name.length - start - count) : Math.min(start, name.length);
+  const e = Math.min(s + count, name.length);
+  return (name.slice(0, s) + name.slice(e) || name) + ext;
+}
+
+// ─── End utility rename functions ─────────────────────────────────────────────
 
 // Find & Replace on the filename (preserves extension)
 export function generateFindReplaceName(fileName: string, find: string, replace: string, useRegex: boolean): string {
@@ -383,15 +698,6 @@ export async function generatePreviews(
           options.wordDelimiter ?? " ",
         );
         break;
-      case "sequential":
-        renamed = generateSequentialName(
-          fileName,
-          options.prefix || "file",
-          (options.startNumber ?? 1) + i,
-          options.zeroPad ?? 3,
-          options.separator ?? "-",
-        );
-        break;
       case "date":
         renamed = await generateDateName(
           join(folderPath, fileName),
@@ -419,13 +725,21 @@ export async function generatePreviews(
         renamed = generateSwapDelimiterName(fileName, options.fromDelimiter ?? ".", options.toDelimiter ?? " ");
         break;
       case "enumerate":
-        renamed = generateEnumerateName(
-          fileName,
-          options.enumPrefix ?? "",
-          (options.enumStart ?? 1) + i,
-          options.enumPad ?? 3,
-          options.enumSeparator ?? "-",
-        );
+        if (options.enumCustomTemplate && options.enumTemplate && options.enumCounters?.length) {
+          renamed = generateTemplateEnumerateName(fileName, options.enumTemplate, i, options.enumCounters);
+        } else {
+          renamed = generateEnumerateName(
+            fileName,
+            options.enumPrefix ?? "",
+            (options.enumStart ?? 1) + i,
+            options.enumPad ?? 3,
+            options.enumSeparator ?? "-",
+            options.enumKeepName ?? true,
+            options.enumPosition ?? "before",
+            options.enumFormat ?? "numeric",
+            options.enumSuffix ?? "",
+          );
+        }
         break;
     }
 
