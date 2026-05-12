@@ -1,0 +1,23 @@
+README.md
+  1bd996b7707a3649 407-409
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "10122606e7ed60c8f88ea169267dc543186751fd",
+  "prompts": {
+    "1bd996b7707a3649": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_27320fae4ffeIXCBkEYDLcpgWb",
+        "model": "anthropic/claude-opus-4-6"
+      },
+      "human_author": "mdias",
+      "messages": [],
+      "total_additions": 3,
+      "total_deletions": 1,
+      "accepted_lines": 3,
+      "overriden_lines": 0
+    }
+  }
+}
