@@ -1,0 +1,23 @@
+CHANGELOG.md
+  1bd996b7707a3649 3-8
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.2.8",
+  "base_commit_sha": "a090c6e6254ccdb463601ba0f0ce92c673433311",
+  "prompts": {
+    "1bd996b7707a3649": {
+      "agent_id": {
+        "tool": "opencode",
+        "id": "ses_27320fae4ffeIXCBkEYDLcpgWb",
+        "model": "anthropic/claude-opus-4-6"
+      },
+      "human_author": "mdias",
+      "messages": [],
+      "total_additions": 6,
+      "total_deletions": 0,
+      "accepted_lines": 6,
+      "overriden_lines": 0
+    }
+  }
+}
