@@ -404,7 +404,9 @@ Template: {model}_{date}_{i} → EOS R5_2026-03-31_001.jpg
 Template: {date}_{name}      → 2026-03-31_DSC_0001.jpg
 ```
 
-Files are automatically sorted by EXIF date taken. Supports JPEG, TIFF, HEIC, RAW (ARW, CR2, NEF, DNG), and more.
+Files are automatically sorted by EXIF date taken.
+
+**Supported formats:** JPEG (`.jpg`, `.jpeg`), TIFF (`.tiff`, `.tif`), PNG (`.png`), HEIC (`.heic`, `.heif`), WebP (`.webp`), DNG (`.dng`), Canon CR2 (`.cr2`), Nikon NEF (`.nef`), Sony ARW (`.arw`).
 
 ---
 
