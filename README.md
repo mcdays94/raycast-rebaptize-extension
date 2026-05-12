@@ -84,13 +84,13 @@ Before       After
 Standard movie format with year and quality.
 
 ```
-Before                              After
-Interstellar 2014 1080p BluRay.mkv  Interstellar 2014 1080p.mkv
-The_Dark_Knight_2008_720p.mp4       Interstellar 2014 1080p.mp4
-inception.2010.brrip.x264.mkv      Interstellar 2014 1080p.mkv
+Before                                              After
+Interstellar.2014.1080p.BluRay.x264-DEMAND.mkv      Interstellar 2014 1080p.mkv
+interstellar_(2014)_DVDRip_x264.mp4                 Interstellar 2014 1080p.mp4
+Interstellar.2014.HEVC.HDR.WEBRip.avi               Interstellar 2014 1080p.avi
 ```
 
-Note: All files in the folder are renamed to the same movie name you provide.
+Note: All files in the folder are renamed to the same movie name you provide. Use this when you have multiple versions of the same movie (different formats, qualities, or releases) that you want to normalise to a single clean name. The original extension is preserved on each file.
 
 | Option         | Description                             | Default                      |
 | -------------- | --------------------------------------- | ---------------------------- |
